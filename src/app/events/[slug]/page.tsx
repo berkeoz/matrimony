@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { events, getEventBySlug, formatEventDate } from "@/lib/events";
-
-export function generateStaticParams() {
-  return events.map((event) => ({ slug: event.slug }));
-}
+import { getEventBySlug } from "@/lib/events";
+import { formatWallClockDate } from "@/lib/datetime";
 
 export async function generateMetadata({
   params,
@@ -13,7 +10,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const event = getEventBySlug(slug);
+  const event = await getEventBySlug(slug);
   if (!event) return { title: "Event not found — Evlilik Yolu" };
   return {
     title: `${event.title} — Evlilik Yolu`,
@@ -27,10 +24,10 @@ export default async function EventDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const event = getEventBySlug(slug);
+  const event = await getEventBySlug(slug);
   if (!event) notFound();
 
-  const isPast = new Date(event.startsAt) < new Date();
+  const isPast = event.startsAt < new Date();
   const spotsLeft = event.capacity - event.rsvpCount;
 
   return (
@@ -47,7 +44,7 @@ export default async function EventDetailPage({
       <dl className="mt-6 grid gap-4 rounded-2xl border border-black/10 p-6 sm:grid-cols-2">
         <div>
           <dt className="text-xs font-semibold uppercase text-neutral-500">Date &amp; time</dt>
-          <dd className="mt-1 text-sm">{formatEventDate(event.startsAt)}</dd>
+          <dd className="mt-1 text-sm">{formatWallClockDate(event.startsAt)}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase text-neutral-500">Venue</dt>

@@ -1,18 +1,20 @@
 import { prisma } from "@/lib/prisma";
-import { events } from "@/lib/events";
 
 export default async function AdminOverviewPage() {
-  const [totalUsers, verifiedUsers, adminCount] = await Promise.all([
+  const [totalUsers, verifiedUsers, adminCount, eventCount, storyCount] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { emailVerified: { not: null } } }),
     prisma.user.count({ where: { role: "ADMIN" } }),
+    prisma.event.count(),
+    prisma.successStory.count(),
   ]);
 
   const stats = [
     { label: "Total users", value: totalUsers },
     { label: "Verified users", value: verifiedUsers },
     { label: "Admins", value: adminCount },
-    { label: "Events listed", value: events.length },
+    { label: "Events listed", value: eventCount },
+    { label: "Success stories", value: storyCount },
   ];
 
   return (

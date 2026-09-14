@@ -64,3 +64,41 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+model SuccessStory {
+  id        String   @id @default(cuid())
+  names     String
+  location  String
+  quote     String   @db.Text
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  title           String
+  description     String   @db.Text
+  longDescription String   @db.Text
+  city            String
+  venue           String
+  startsAt        DateTime
+  organizer       String
+  capacity        Int      @default(0)
+  rsvpCount       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model HomepageContent {
+  id             String   @id @default("homepage")
+  heroBadge      String
+  heroTitle      String
+  heroSubtitle   String   @db.Text
+  howItWorks     Json
+  trustPoints    Json
+  ctaTitle       String
+  ctaDescription String   @db.Text
+  updatedAt      DateTime @updatedAt
+}

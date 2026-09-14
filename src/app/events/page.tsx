@@ -1,15 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getUpcomingEvents, getPastEvents, formatEventDate } from "@/lib/events";
+import { getUpcomingEvents, getPastEvents } from "@/lib/events";
+import { formatWallClockDate } from "@/lib/datetime";
 
 export const metadata: Metadata = {
   title: "Events — Evlilik Yolu",
   description: "Current and upcoming in-person meetups for the Evlilik Yolu community.",
 };
 
-export default function EventsPage() {
-  const upcoming = getUpcomingEvents();
-  const past = getPastEvents();
+export default async function EventsPage() {
+  const [upcoming, past] = await Promise.all([getUpcomingEvents(), getPastEvents()]);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
@@ -39,7 +39,7 @@ export default function EventsPage() {
                 </p>
                 <h3 className="mt-2 text-lg font-semibold">{event.title}</h3>
                 <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-                  {formatEventDate(event.startsAt)}
+                  {formatWallClockDate(event.startsAt)}
                 </p>
                 <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">{event.description}</p>
                 <p className="mt-4 text-xs font-medium text-neutral-500">
@@ -79,7 +79,7 @@ export default function EventsPage() {
               </p>
               <h3 className="mt-2 text-lg font-semibold">{event.title}</h3>
               <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-                {formatEventDate(event.startsAt)}
+                {formatWallClockDate(event.startsAt)}
               </p>
             </Link>
           ))}

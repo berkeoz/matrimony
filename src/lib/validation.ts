@@ -14,3 +14,57 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+export const roleSchema = z.enum(["MEMBER", "ORGANIZER", "ADMIN"]);
+
+export const adminCreateUserSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.string().trim().toLowerCase().email(),
+  password: z.string().min(8).max(72),
+  role: roleSchema,
+});
+
+export const adminUpdateUserSchema = z.object({
+  name: z.string().trim().min(2).max(100).optional(),
+  role: roleSchema.optional(),
+});
+
+export const successStorySchema = z.object({
+  names: z.string().trim().min(1).max(150),
+  location: z.string().trim().min(1).max(150),
+  quote: z.string().trim().min(1).max(2000),
+  order: z.coerce.number().int().default(0),
+});
+
+export const eventSchema = z.object({
+  title: z.string().trim().min(1).max(150),
+  slug: z
+    .string()
+    .trim()
+    .min(1)
+    .max(150)
+    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens only"),
+  description: z.string().trim().min(1).max(500),
+  longDescription: z.string().trim().min(1).max(5000),
+  city: z.string().trim().min(1).max(100),
+  venue: z.string().trim().min(1).max(200),
+  startsAt: z.string().min(1),
+  organizer: z.string().trim().min(1).max(150),
+  capacity: z.coerce.number().int().min(0),
+  rsvpCount: z.coerce.number().int().min(0),
+});
+
+export const homepageSectionSchema = z.object({
+  title: z.string().trim().min(1).max(150),
+  description: z.string().trim().min(1).max(500),
+});
+
+export const homepageContentSchema = z.object({
+  heroBadge: z.string().trim().min(1).max(150),
+  heroTitle: z.string().trim().min(1).max(200),
+  heroSubtitle: z.string().trim().min(1).max(500),
+  howItWorks: z.array(homepageSectionSchema).max(10),
+  trustPoints: z.array(homepageSectionSchema).max(10),
+  ctaTitle: z.string().trim().min(1).max(200),
+  ctaDescription: z.string().trim().min(1).max(500),
+});
