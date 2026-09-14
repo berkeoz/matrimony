@@ -36,6 +36,8 @@ export const successStorySchema = z.object({
   order: z.coerce.number().int().default(0),
 });
 
+export const eventStatusSchema = z.enum(["OPEN", "CLOSED", "CANCELLED", "COMPLETED"]);
+
 export const eventSchema = z.object({
   title: z.string().trim().min(1).max(150),
   slug: z
@@ -51,7 +53,7 @@ export const eventSchema = z.object({
   startsAt: z.string().min(1),
   organizer: z.string().trim().min(1).max(150),
   capacity: z.coerce.number().int().min(0),
-  rsvpCount: z.coerce.number().int().min(0),
+  status: eventStatusSchema,
 });
 
 export const homepageSectionSchema = z.object({

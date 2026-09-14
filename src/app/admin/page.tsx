@@ -1,13 +1,15 @@
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminOverviewPage() {
-  const [totalUsers, verifiedUsers, adminCount, eventCount, storyCount] = await Promise.all([
-    prisma.user.count(),
-    prisma.user.count({ where: { emailVerified: { not: null } } }),
-    prisma.user.count({ where: { role: "ADMIN" } }),
-    prisma.event.count(),
-    prisma.successStory.count(),
-  ]);
+  const [totalUsers, verifiedUsers, adminCount, eventCount, storyCount, rsvpCount] =
+    await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { emailVerified: { not: null } } }),
+      prisma.user.count({ where: { role: "ADMIN" } }),
+      prisma.event.count(),
+      prisma.successStory.count(),
+      prisma.eventRsvp.count({ where: { status: { in: ["CONFIRMED", "WAITLISTED"] } } }),
+    ]);
 
   const stats = [
     { label: "Total users", value: totalUsers },
@@ -15,6 +17,7 @@ export default async function AdminOverviewPage() {
     { label: "Admins", value: adminCount },
     { label: "Events listed", value: eventCount },
     { label: "Success stories", value: storyCount },
+    { label: "Event RSVPs", value: rsvpCount },
   ];
 
   return (

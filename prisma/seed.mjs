@@ -84,7 +84,6 @@ const events = [
     startsAt: new Date(Date.UTC(2026, 9, 4, 18, 0)),
     organizer: "Istanbul Community Circle",
     capacity: 40,
-    rsvpCount: 27,
   },
   {
     slug: "ankara-family-brunch",
@@ -97,7 +96,6 @@ const events = [
     startsAt: new Date(Date.UTC(2026, 9, 18, 11, 0)),
     organizer: "Ankara Aile Buluşmaları",
     capacity: 30,
-    rsvpCount: 12,
   },
   {
     slug: "berlin-diaspora-evening",
@@ -110,7 +108,6 @@ const events = [
     startsAt: new Date(Date.UTC(2026, 10, 1, 18, 30)),
     organizer: "Berlin Türk Toplulukları",
     capacity: 50,
-    rsvpCount: 41,
   },
   {
     slug: "izmir-summer-gathering",
@@ -123,7 +120,6 @@ const events = [
     startsAt: new Date(Date.UTC(2026, 7, 9, 18, 0)),
     organizer: "Izmir Community Circle",
     capacity: 45,
-    rsvpCount: 45,
   },
 ];
 

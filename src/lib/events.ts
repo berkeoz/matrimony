@@ -5,7 +5,7 @@ export type { Event };
 
 export async function getUpcomingEvents(limit?: number): Promise<Event[]> {
   const events = await prisma.event.findMany({
-    where: { startsAt: { gte: new Date() } },
+    where: { startsAt: { gte: new Date() }, status: { not: "CANCELLED" } },
     orderBy: { startsAt: "asc" },
     take: limit,
   });
@@ -14,7 +14,7 @@ export async function getUpcomingEvents(limit?: number): Promise<Event[]> {
 
 export async function getPastEvents(): Promise<Event[]> {
   return prisma.event.findMany({
-    where: { startsAt: { lt: new Date() } },
+    where: { startsAt: { lt: new Date() }, status: { not: "CANCELLED" } },
     orderBy: { startsAt: "desc" },
   });
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getUpcomingEvents, getPastEvents } from "@/lib/events";
 import { formatWallClockDate } from "@/lib/datetime";
+import { getConfirmedCount } from "@/lib/rsvp";
 
 export const metadata: Metadata = {
   title: "Events — Evlilik Yolu",
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 
 export default async function EventsPage() {
   const [upcoming, past] = await Promise.all([getUpcomingEvents(), getPastEvents()]);
+  const confirmedCounts = await Promise.all(upcoming.map((event) => getConfirmedCount(event.id)));
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
@@ -26,8 +28,10 @@ export default async function EventsPage() {
           Upcoming ({upcoming.length})
         </h2>
         <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {upcoming.map((event) => {
-            const spotsLeft = event.capacity - event.rsvpCount;
+          {upcoming.map((event, i) => {
+            const confirmedCount = confirmedCounts[i];
+            const spotsLeft = event.capacity - confirmedCount;
+            const rsvpOpen = event.status === "OPEN";
             return (
               <Link
                 key={event.slug}
@@ -45,15 +49,19 @@ export default async function EventsPage() {
                 <p className="mt-4 text-xs font-medium text-neutral-500">
                   Organized by {event.organizer}
                 </p>
-                <p
-                  className={`mt-2 text-xs font-semibold ${
-                    spotsLeft <= 0 ? "text-neutral-400" : "text-rose-700"
-                  }`}
-                >
-                  {spotsLeft <= 0
-                    ? "Waitlist only"
-                    : `${spotsLeft} of ${event.capacity} spots left`}
-                </p>
+                {!rsvpOpen ? (
+                  <p className="mt-2 text-xs font-semibold text-neutral-400">RSVPs closed</p>
+                ) : (
+                  <p
+                    className={`mt-2 text-xs font-semibold ${
+                      spotsLeft <= 0 ? "text-neutral-400" : "text-rose-700"
+                    }`}
+                  >
+                    {spotsLeft <= 0
+                      ? "Waitlist only"
+                      : `${spotsLeft} of ${event.capacity} spots left`}
+                  </p>
+                )}
               </Link>
             );
           })}

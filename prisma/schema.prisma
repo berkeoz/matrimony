@@ -27,6 +27,7 @@ model User {
 
   accounts Account[]
   sessions Session[]
+  rsvps    EventRsvp[]
 }
 
 model Account {
@@ -75,20 +76,50 @@ model SuccessStory {
   updatedAt DateTime @updatedAt
 }
 
+enum EventStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+  COMPLETED
+}
+
+enum RsvpStatus {
+  CONFIRMED
+  WAITLISTED
+  CANCELLED
+}
+
 model Event {
-  id              String   @id @default(cuid())
-  slug            String   @unique
+  id              String      @id @default(cuid())
+  slug            String      @unique
   title           String
-  description     String   @db.Text
-  longDescription String   @db.Text
+  description     String      @db.Text
+  longDescription String      @db.Text
   city            String
   venue           String
   startsAt        DateTime
   organizer       String
-  capacity        Int      @default(0)
-  rsvpCount       Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  capacity        Int         @default(0)
+  status          EventStatus @default(OPEN)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  rsvps EventRsvp[]
+}
+
+model EventRsvp {
+  id         String     @id @default(cuid())
+  eventId    String
+  userId     String
+  status     RsvpStatus @default(CONFIRMED)
+  remindedAt DateTime?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
 }
 
 model HomepageContent {

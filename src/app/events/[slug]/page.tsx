@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getEventBySlug } from "@/lib/events";
 import { formatWallClockDate } from "@/lib/datetime";
+import { getConfirmedCount, getUserRsvp } from "@/lib/rsvp";
+import { auth } from "@/lib/auth";
+import RsvpButton from "@/components/RsvpButton";
 
 export async function generateMetadata({
   params,
@@ -18,6 +21,12 @@ export async function generateMetadata({
   };
 }
 
+const statusLabel: Record<string, string> = {
+  CANCELLED: "Cancelled",
+  CLOSED: "RSVPs closed",
+  COMPLETED: "Completed",
+};
+
 export default async function EventDetailPage({
   params,
 }: {
@@ -27,8 +36,17 @@ export default async function EventDetailPage({
   const event = await getEventBySlug(slug);
   if (!event) notFound();
 
+  const session = await auth();
+  const [confirmedCount, userRsvp] = await Promise.all([
+    getConfirmedCount(event.id),
+    session?.user ? getUserRsvp(event.id, session.user.id) : Promise.resolve(null),
+  ]);
+
   const isPast = event.startsAt < new Date();
-  const spotsLeft = event.capacity - event.rsvpCount;
+  const spotsLeft = event.capacity - confirmedCount;
+  const rsvpOpen = event.status === "OPEN" && !isPast;
+  const initialRsvpStatus =
+    userRsvp && userRsvp.status !== "CANCELLED" ? (userRsvp.status as "CONFIRMED" | "WAITLISTED") : "NONE";
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
@@ -37,7 +55,8 @@ export default async function EventDetailPage({
       </Link>
 
       <p className="mt-6 text-xs font-semibold uppercase tracking-wide text-rose-700">
-        {event.city} · {isPast ? "Past event" : "Upcoming"}
+        {event.city} ·{" "}
+        {event.status !== "OPEN" ? statusLabel[event.status] : isPast ? "Past event" : "Upcoming"}
       </p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{event.title}</h1>
 
@@ -57,8 +76,8 @@ export default async function EventDetailPage({
         <div>
           <dt className="text-xs font-semibold uppercase text-neutral-500">Capacity</dt>
           <dd className="mt-1 text-sm">
-            {event.rsvpCount} / {event.capacity} RSVP&apos;d
-            {!isPast && (
+            {confirmedCount} / {event.capacity} RSVP&apos;d
+            {rsvpOpen && (
               <span className={spotsLeft <= 0 ? "text-neutral-400" : "text-rose-700"}>
                 {" "}
                 ({spotsLeft <= 0 ? "waitlist only" : `${spotsLeft} spots left`})
@@ -73,17 +92,18 @@ export default async function EventDetailPage({
       <div className="mt-10">
         {isPast ? (
           <p className="text-sm text-neutral-500">This event has already taken place.</p>
+        ) : event.status === "CANCELLED" ? (
+          <p className="text-sm text-neutral-500">This event has been cancelled.</p>
+        ) : event.status === "CLOSED" ? (
+          <p className="text-sm text-neutral-500">RSVPs are closed for this event.</p>
         ) : (
-          <Link
-            href="/signup"
-            className="inline-block rounded-full bg-rose-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-rose-800"
-          >
-            {spotsLeft <= 0 ? "Join waitlist" : "RSVP to this event"}
-          </Link>
+          <RsvpButton
+            slug={event.slug}
+            initialStatus={initialRsvpStatus}
+            isLoggedIn={Boolean(session?.user)}
+            spotsLeft={spotsLeft}
+          />
         )}
-        <p className="mt-3 text-xs text-neutral-500">
-          You&apos;ll need a verified account to RSVP.
-        </p>
       </div>
     </div>
   );
