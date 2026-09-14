@@ -29,6 +29,14 @@ export default function Header({ session }: { session: Session | null }) {
 
         {session?.user ? (
           <div className="flex items-center gap-4">
+            {session.user.role === "ADMIN" && (
+              <Link
+                href="/admin"
+                className="hidden text-sm font-semibold text-rose-700 hover:underline sm:block"
+              >
+                Admin
+              </Link>
+            )}
             <span className="hidden text-sm font-medium text-neutral-600 sm:block dark:text-neutral-300">
               {session.user.name ?? session.user.email}
             </span>
