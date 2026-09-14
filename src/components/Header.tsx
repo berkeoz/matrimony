@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import type { Session } from "next-auth";
 import SignOutButton from "@/components/SignOutButton";
 
 const navLinks = [
@@ -8,9 +8,7 @@ const navLinks = [
   { href: "/#success-stories", label: "Success Stories" },
 ];
 
-export default async function Header() {
-  const session = await auth();
-
+export default function Header({ session }: { session: Session | null }) {
   return (
     <header className="sticky top-0 z-40 border-b border-black/10 bg-[var(--background)]/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">

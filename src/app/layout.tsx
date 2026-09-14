@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import VerifyEmailBanner from "@/components/VerifyEmailBanner";
+import { auth } from "@/lib/auth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,14 +22,18 @@ export const metadata: Metadata = {
     "A marriage-focused community platform for Turkish singles, at home and abroad. Build a verified profile, connect with intention, and meet the community in person at local events.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const session = await auth();
+  const needsVerification = Boolean(session?.user) && !session?.user.emailVerified;
+
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <Header />
+        <Header session={session} />
+        {needsVerification && <VerifyEmailBanner />}
         <main className="flex-1">{children}</main>
         <Footer />
       </body>
