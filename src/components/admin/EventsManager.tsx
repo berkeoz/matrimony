@@ -6,7 +6,7 @@ import { slugify } from "@/lib/events";
 import { toDateTimeLocalValue, formatWallClockDate, parseWallClockDateTime } from "@/lib/datetime";
 
 type EventStatus = "OPEN" | "CLOSED" | "CANCELLED" | "COMPLETED";
-type RsvpStatus = "CONFIRMED" | "WAITLISTED" | "CANCELLED";
+type RsvpStatus = "PENDING" | "CONFIRMED" | "WAITLISTED" | "CANCELLED";
 
 type Attendee = {
   userId: string;
@@ -268,8 +268,20 @@ function AttendeeList({ eventId, attendees, onChanged }: { eventId: string; atte
             {a.name ?? a.email}{" "}
             <span className="text-neutral-400">
               — {a.email} ·{" "}
-              <span className={a.status === "WAITLISTED" ? "text-amber-600" : "text-green-700"}>
-                {a.status === "WAITLISTED" ? "waitlisted" : "confirmed"}
+              <span
+                className={
+                  a.status === "WAITLISTED"
+                    ? "text-amber-600"
+                    : a.status === "PENDING"
+                      ? "text-neutral-500"
+                      : "text-green-700"
+                }
+              >
+                {a.status === "WAITLISTED"
+                  ? "waitlisted"
+                  : a.status === "PENDING"
+                    ? "awaiting confirmation"
+                    : "confirmed"}
               </span>
             </span>
           </span>

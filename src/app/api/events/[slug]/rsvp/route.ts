@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createRsvp, cancelRsvp } from "@/lib/rsvp";
-import { sendRsvpConfirmationEmail, sendWaitlistPromotedEmail, type EventEmailInfo } from "@/lib/mail";
+import { sendRsvpPendingEmail, sendWaitlistPromotedEmail, type EventEmailInfo } from "@/lib/mail";
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const session = await auth();
@@ -21,28 +21,30 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  if (!result.alreadyExisted) {
-    const origin = new URL(request.url).origin;
-    const eventInfo: EventEmailInfo = {
-      title: event.title,
-      venue: event.venue,
-      city: event.city,
-      startsAt: event.startsAt,
-      eventUrl: `${origin}/events/${event.slug}`,
-    };
-    try {
-      await sendRsvpConfirmationEmail({
-        to: session.user.email!,
-        name: session.user.name ?? "there",
-        event: eventInfo,
-        waitlisted: result.status === "WAITLISTED",
-      });
-    } catch (err) {
-      console.error("Failed to send RSVP confirmation email", err);
-    }
+  if (result.kind === "already_active") {
+    return NextResponse.json({ status: result.status });
   }
 
-  return NextResponse.json({ status: result.status });
+  const origin = new URL(request.url).origin;
+  const eventInfo: EventEmailInfo = {
+    title: event.title,
+    venue: event.venue,
+    city: event.city,
+    startsAt: event.startsAt,
+    eventUrl: `${origin}/events/${event.slug}`,
+  };
+  try {
+    await sendRsvpPendingEmail({
+      to: session.user.email!,
+      name: session.user.name ?? "there",
+      event: eventInfo,
+      confirmUrl: `${origin}/api/events/rsvp-confirm?token=${result.rawToken}`,
+    });
+  } catch (err) {
+    console.error("Failed to send RSVP confirmation email", err);
+  }
+
+  return NextResponse.json({ status: "PENDING" });
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ slug: string }> }) {

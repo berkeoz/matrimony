@@ -70,3 +70,16 @@ export const homepageContentSchema = z.object({
   ctaTitle: z.string().trim().min(1).max(200),
   ctaDescription: z.string().trim().min(1).max(500),
 });
+
+export const pageContentSchema = z.object({
+  title: z.string().trim().min(1).max(150),
+  body: z.string().trim().min(1).max(20000),
+});
+
+export const contactSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(150),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
+  message: z.string().trim().min(10, "Message is too short").max(5000),
+  website: z.string().optional(), // honeypot: bots tend to fill this in, humans never see it
+  startedAt: z.coerce.number(),
+});

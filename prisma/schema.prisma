@@ -66,6 +66,21 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model PasswordResetToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Page {
+  slug      String   @id
+  title     String
+  body      String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
 model SuccessStory {
   id        String   @id @default(cuid())
   names     String
@@ -84,6 +99,7 @@ enum EventStatus {
 }
 
 enum RsvpStatus {
+  PENDING
   CONFIRMED
   WAITLISTED
   CANCELLED
@@ -108,13 +124,15 @@ model Event {
 }
 
 model EventRsvp {
-  id         String     @id @default(cuid())
-  eventId    String
-  userId     String
-  status     RsvpStatus @default(CONFIRMED)
-  remindedAt DateTime?
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id                 String     @id @default(cuid())
+  eventId            String
+  userId             String
+  status             RsvpStatus @default(PENDING)
+  confirmToken       String?    @unique
+  confirmTokenExpires DateTime?
+  remindedAt         DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)

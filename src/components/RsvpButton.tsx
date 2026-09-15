@@ -4,18 +4,16 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 
-type RsvpState = "NONE" | "CONFIRMED" | "WAITLISTED";
+type RsvpState = "NONE" | "PENDING" | "CONFIRMED" | "WAITLISTED";
 
 export default function RsvpButton({
   slug,
   initialStatus,
   isLoggedIn,
-  spotsLeft,
 }: {
   slug: string;
   initialStatus: RsvpState;
   isLoggedIn: boolean;
-  spotsLeft: number;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<RsvpState>(initialStatus);
@@ -29,7 +27,7 @@ export default function RsvpButton({
           href="/signup"
           className="inline-block rounded-full bg-rose-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-rose-800"
         >
-          {spotsLeft <= 0 ? "Join waitlist" : "RSVP to this event"}
+          RSVP to this event
         </Link>
         <p className="mt-3 text-xs text-neutral-500">You&apos;ll need an account to RSVP.</p>
       </>
@@ -61,6 +59,38 @@ export default function RsvpButton({
     }
     setStatus("NONE");
     router.refresh();
+  }
+
+  if (status === "PENDING") {
+    return (
+      <div>
+        <p className="inline-flex items-center gap-2 rounded-full bg-neutral-100 px-4 py-2 text-sm font-semibold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+          Check your email to confirm
+        </p>
+        <p className="mt-2 text-xs text-neutral-500">
+          We sent a confirmation link — your spot isn&apos;t reserved until you click it.
+        </p>
+        <div className="mt-3 flex items-center gap-4">
+          <button
+            type="button"
+            onClick={handleRsvp}
+            disabled={busy}
+            className="text-sm font-semibold text-rose-700 hover:underline disabled:opacity-50"
+          >
+            {busy ? "Resending…" : "Resend email"}
+          </button>
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={busy}
+            className="text-sm font-semibold text-red-700 hover:underline disabled:opacity-50 dark:text-red-400"
+          >
+            Cancel
+          </button>
+        </div>
+        {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      </div>
+    );
   }
 
   if (status === "CONFIRMED" || status === "WAITLISTED") {
@@ -98,7 +128,7 @@ export default function RsvpButton({
         disabled={busy}
         className="rounded-full bg-rose-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:opacity-60"
       >
-        {busy ? "Submitting…" : spotsLeft <= 0 ? "Join waitlist" : "RSVP to this event"}
+        {busy ? "Submitting…" : "RSVP to this event"}
       </button>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>

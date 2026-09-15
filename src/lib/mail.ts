@@ -9,6 +9,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function shell(title: string, bodyHtml: string) {
   return `
     <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
@@ -50,6 +59,51 @@ export async function sendVerificationEmail(params: { to: string; name: string; 
   });
 }
 
+export async function sendPasswordResetEmail(params: { to: string; name: string; resetUrl: string }) {
+  const { to, name, resetUrl } = params;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: "Reset your password — Evlilik Yolu",
+    html: shell(
+      `Reset your password, ${name}`,
+      `
+        <p>We received a request to reset your password. If this wasn't you, you can safely ignore this email.</p>
+        ${button(resetUrl, "Reset my password")}
+        <p style="color: #666; font-size: 13px;">
+          Or paste this link into your browser: <br />
+          <a href="${resetUrl}">${resetUrl}</a>
+        </p>
+        <p style="color: #999; font-size: 12px;">This link expires in 1 hour.</p>
+      `
+    ),
+  });
+}
+
+export async function sendContactMessageEmail(params: {
+  to: string;
+  fromName: string;
+  fromEmail: string;
+  message: string;
+}) {
+  const { to, fromName, fromEmail, message } = params;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    replyTo: fromEmail,
+    subject: `New contact message from ${fromName}`,
+    html: shell(
+      "New contact form message",
+      `
+        <p><strong>From:</strong> ${escapeHtml(fromName)} (${escapeHtml(fromEmail)})</p>
+        <p style="white-space: pre-wrap; color: #444;">${escapeHtml(message)}</p>
+      `
+    ),
+  });
+}
+
 export type EventEmailInfo = {
   title: string;
   venue: string;
@@ -66,6 +120,34 @@ function eventDetailsHtml(event: EventEmailInfo) {
       ${event.venue}, ${event.city}
     </p>
   `;
+}
+
+export async function sendRsvpPendingEmail(params: {
+  to: string;
+  name: string;
+  event: EventEmailInfo;
+  confirmUrl: string;
+}) {
+  const { to, name, event, confirmUrl } = params;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `Confirm your RSVP — ${event.title}`,
+    html: shell(
+      `One more step, ${name}`,
+      `
+        <p>Please confirm your RSVP by clicking the button below. Your spot isn't reserved until you do.</p>
+        ${eventDetailsHtml(event)}
+        ${button(confirmUrl, "Confirm my RSVP")}
+        <p style="color: #666; font-size: 13px;">
+          Or paste this link into your browser: <br />
+          <a href="${confirmUrl}">${confirmUrl}</a>
+        </p>
+        <p style="color: #999; font-size: 12px;">This link expires in 48 hours.</p>
+      `
+    ),
+  });
 }
 
 export async function sendRsvpConfirmationEmail(params: {

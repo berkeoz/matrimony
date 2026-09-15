@@ -46,7 +46,9 @@ export default async function EventDetailPage({
   const spotsLeft = event.capacity - confirmedCount;
   const rsvpOpen = event.status === "OPEN" && !isPast;
   const initialRsvpStatus =
-    userRsvp && userRsvp.status !== "CANCELLED" ? (userRsvp.status as "CONFIRMED" | "WAITLISTED") : "NONE";
+    userRsvp && userRsvp.status !== "CANCELLED"
+      ? (userRsvp.status as "PENDING" | "CONFIRMED" | "WAITLISTED")
+      : "NONE";
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
@@ -101,7 +103,6 @@ export default async function EventDetailPage({
             slug={event.slug}
             initialStatus={initialRsvpStatus}
             isLoggedIn={Boolean(session?.user)}
-            spotsLeft={spotsLeft}
           />
         )}
       </div>

@@ -123,6 +123,40 @@ const events = [
   },
 ];
 
+const pages = [
+  {
+    slug: "about",
+    title: "About Evlilik Yolu",
+    body: `Evlilik Yolu is a marriage-focused community platform for Turkish singles, at home and abroad.
+
+We built this platform because finding a serious, marriage-minded partner who shares your background and values shouldn't mean settling for casual dating apps. Every member creates a verified profile, and connections are built around intention — not endless swiping.
+
+Family involvement is always optional and always on your terms. We host in-person meetups in cities with an active community, so members can meet face to face in a comfortable, respectful setting.
+
+Whether you grew up in Turkey or in the diaspora, we hope Evlilik Yolu helps you find someone who understands where you come from.`,
+  },
+  {
+    slug: "privacy",
+    title: "Privacy Policy",
+    body: `Your privacy matters to us. Here's a summary of how we handle your information.
+
+What we collect: your name, email, and password (stored securely, never in plain text) when you create an account. Once profiles launch, you'll control what background information you choose to share.
+
+Who can see your information: your full profile is only visible to other verified members, never the public. You control what's visible before a mutual match.
+
+Email communication: we email you for account verification, event RSVPs and reminders, and updates to events you're attending. You can unsubscribe from non-essential emails at any time.
+
+Data deletion: you can request deletion of your account and associated data at any time by contacting us.
+
+This is a living document and will be updated as new features (like member profiles and matching) launch.`,
+  },
+  {
+    slug: "contact",
+    title: "Contact us",
+    body: "Have a question, feedback, or need help with your account? Send us a message below and we'll get back to you.",
+  },
+];
+
 async function main() {
   await prisma.homepageContent.upsert({
     where: { id: "homepage" },
@@ -147,6 +181,15 @@ async function main() {
     });
   }
   console.log("Seeded events");
+
+  for (const page of pages) {
+    await prisma.page.upsert({
+      where: { slug: page.slug },
+      create: page,
+      update: {},
+    });
+  }
+  console.log("Seeded pages");
 }
 
 main()

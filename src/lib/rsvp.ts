@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import type { Event } from "@prisma/client";
+import { generateRawToken, hashToken } from "@/lib/tokens";
+
+const CONFIRM_TOKEN_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
 
 export async function getConfirmedCount(eventId: string): Promise<number> {
   return prisma.eventRsvp.count({ where: { eventId, status: "CONFIRMED" } });
@@ -13,11 +16,20 @@ export async function getUserRsvp(eventId: string, userId: string) {
   return prisma.eventRsvp.findUnique({ where: { eventId_userId: { eventId, userId } } });
 }
 
-export type RsvpResult =
-  | { ok: true; status: "CONFIRMED" | "WAITLISTED"; alreadyExisted: boolean }
+export type RsvpRequestResult =
+  | { ok: true; kind: "new_pending"; rawToken: string }
+  | { ok: true; kind: "already_active"; status: "CONFIRMED" | "WAITLISTED" }
   | { ok: false; error: string };
 
-export async function createRsvp(event: Event, userId: string): Promise<RsvpResult> {
+/**
+ * Starts the RSVP process: creates a PENDING row and returns a raw
+ * confirmation token for the caller to email. Attendance is only granted
+ * (CONFIRMED or WAITLISTED) once confirmRsvp() is called with that token —
+ * this is the "confirmed once the RSVP email is answered" requirement, and
+ * also means someone can't be signed up for an event just by knowing (or
+ * guessing) another member's email address.
+ */
+export async function createRsvp(event: Event, userId: string): Promise<RsvpRequestResult> {
   if (event.status !== "OPEN") {
     return { ok: false, error: "RSVPs are not open for this event." };
   }
@@ -26,20 +38,65 @@ export async function createRsvp(event: Event, userId: string): Promise<RsvpResu
   }
 
   const existing = await getUserRsvp(event.id, userId);
-  if (existing && existing.status !== "CANCELLED") {
-    return { ok: true, status: existing.status, alreadyExisted: true };
+  if (existing) {
+    if (existing.status === "PENDING") {
+      const rawToken = generateRawToken();
+      const expires = new Date(Math.min(Date.now() + CONFIRM_TOKEN_TTL_MS, event.startsAt.getTime()));
+      await prisma.eventRsvp.update({
+        where: { id: existing.id },
+        data: { confirmToken: hashToken(rawToken), confirmTokenExpires: expires },
+      });
+      return { ok: true, kind: "new_pending", rawToken };
+    }
+    if (existing.status === "CONFIRMED" || existing.status === "WAITLISTED") {
+      return { ok: true, kind: "already_active", status: existing.status };
+    }
+    // CANCELLED — fall through to re-create a pending RSVP below.
   }
 
-  const confirmedCount = await getConfirmedCount(event.id);
-  const status = confirmedCount < event.capacity ? "CONFIRMED" : "WAITLISTED";
+  const rawToken = generateRawToken();
+  const expires = new Date(Math.min(Date.now() + CONFIRM_TOKEN_TTL_MS, event.startsAt.getTime()));
+  const confirmToken = hashToken(rawToken);
 
   if (existing) {
-    await prisma.eventRsvp.update({ where: { id: existing.id }, data: { status } });
+    await prisma.eventRsvp.update({
+      where: { id: existing.id },
+      data: { status: "PENDING", confirmToken, confirmTokenExpires: expires },
+    });
   } else {
-    await prisma.eventRsvp.create({ data: { eventId: event.id, userId, status } });
+    await prisma.eventRsvp.create({
+      data: { eventId: event.id, userId, status: "PENDING", confirmToken, confirmTokenExpires: expires },
+    });
   }
 
-  return { ok: true, status, alreadyExisted: false };
+  return { ok: true, kind: "new_pending", rawToken };
+}
+
+export type ConfirmResult =
+  | { ok: true; status: "CONFIRMED" | "WAITLISTED"; eventId: string; userId: string }
+  | { ok: false; error: string };
+
+export async function confirmRsvp(rawToken: string): Promise<ConfirmResult> {
+  const hashed = hashToken(rawToken);
+  const rsvp = await prisma.eventRsvp.findUnique({ where: { confirmToken: hashed } });
+
+  if (!rsvp || rsvp.status !== "PENDING") {
+    return { ok: false, error: "This confirmation link is invalid or has already been used." };
+  }
+  if (!rsvp.confirmTokenExpires || rsvp.confirmTokenExpires < new Date()) {
+    return { ok: false, error: "This confirmation link has expired." };
+  }
+
+  const confirmedCount = await getConfirmedCount(rsvp.eventId);
+  const event = await prisma.event.findUnique({ where: { id: rsvp.eventId } });
+  const status = event && confirmedCount < event.capacity ? "CONFIRMED" : "WAITLISTED";
+
+  await prisma.eventRsvp.update({
+    where: { id: rsvp.id },
+    data: { status, confirmToken: null, confirmTokenExpires: null },
+  });
+
+  return { ok: true, status, eventId: rsvp.eventId, userId: rsvp.userId };
 }
 
 export type CancelResult = {
@@ -53,7 +110,10 @@ export async function cancelRsvp(eventId: string, userId: string): Promise<Cance
   }
 
   const wasConfirmed = existing.status === "CONFIRMED";
-  await prisma.eventRsvp.update({ where: { id: existing.id }, data: { status: "CANCELLED" } });
+  await prisma.eventRsvp.update({
+    where: { id: existing.id },
+    data: { status: "CANCELLED", confirmToken: null, confirmTokenExpires: null },
+  });
 
   if (!wasConfirmed) return { promoted: null };
 
@@ -70,7 +130,7 @@ export async function cancelRsvp(eventId: string, userId: string): Promise<Cance
 
 export async function getAttendees(eventId: string) {
   return prisma.eventRsvp.findMany({
-    where: { eventId, status: { in: ["CONFIRMED", "WAITLISTED"] } },
+    where: { eventId, status: { in: ["PENDING", "CONFIRMED", "WAITLISTED"] } },
     orderBy: [{ status: "asc" }, { createdAt: "asc" }],
     include: { user: { select: { id: true, name: true, email: true } } },
   });
