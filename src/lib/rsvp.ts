@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Event } from "@prisma/client";
 import { generateRawToken, hashToken } from "@/lib/tokens";
+import { calculateAge } from "@/lib/profile";
 
 const CONFIRM_TOKEN_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
 
@@ -126,6 +127,55 @@ export async function cancelRsvp(eventId: string, userId: string): Promise<Cance
 
   await prisma.eventRsvp.update({ where: { id: nextInLine.id }, data: { status: "CONFIRMED" } });
   return { promoted: { userId: nextInLine.userId } };
+}
+
+export type AttendeeProfile = {
+  userId: string;
+  name: string;
+  age: number | null;
+  city: string | null;
+  photoUrl: string | null;
+};
+
+/**
+ * Confirmed attendees with enough profile info to show a "who's going" card.
+ * Callers must check the viewer is allowed to see this (see canViewAttendeeList)
+ * before rendering — this function itself doesn't check.
+ */
+export async function getConfirmedAttendeeProfiles(eventId: string): Promise<AttendeeProfile[]> {
+  const rsvps = await prisma.eventRsvp.findMany({
+    where: { eventId, status: "CONFIRMED" },
+    orderBy: { createdAt: "asc" },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          profile: {
+            select: {
+              city: true,
+              birthDate: true,
+              photos: { where: { isPrimary: true }, take: 1, select: { url: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return rsvps.map((rsvp) => ({
+    userId: rsvp.user.id,
+    name: rsvp.user.name ?? "Member",
+    age: rsvp.user.profile?.birthDate ? calculateAge(rsvp.user.profile.birthDate) : null,
+    city: rsvp.user.profile?.city ?? null,
+    photoUrl: rsvp.user.profile?.photos[0]?.url ?? null,
+  }));
+}
+
+// Reciprocal visibility: you must have an active RSVP (confirmed or
+// waitlisted) yourself before you can see who else is going.
+export function canViewAttendeeList(viewerRsvpStatus: string | null | undefined): boolean {
+  return viewerRsvpStatus === "CONFIRMED" || viewerRsvpStatus === "WAITLISTED";
 }
 
 export async function getAttendees(eventId: string) {

@@ -3,10 +3,11 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getEventBySlug } from "@/lib/events";
 import { formatWallClockDate } from "@/lib/datetime";
-import { getConfirmedCount, getUserRsvp } from "@/lib/rsvp";
+import { getConfirmedCount, getUserRsvp, getConfirmedAttendeeProfiles, canViewAttendeeList } from "@/lib/rsvp";
 import { getProfile, isProfileComplete } from "@/lib/profile";
 import { auth } from "@/lib/auth";
 import RsvpButton from "@/components/RsvpButton";
+import AttendeeList from "@/components/AttendeeList";
 
 export async function generateMetadata({
   params,
@@ -53,6 +54,12 @@ export default async function EventDetailPage({
       ? (userRsvp.status as "PENDING" | "CONFIRMED" | "WAITLISTED")
       : "NONE";
 
+  const canSeeAttendees = canViewAttendeeList(userRsvp?.status);
+  const attendees = canSeeAttendees ? await getConfirmedAttendeeProfiles(event.id) : [];
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    `${event.venue}, ${event.city}`
+  )}`;
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
       <Link href="/events" className="text-sm font-semibold text-rose-700 hover:underline">
@@ -72,7 +79,17 @@ export default async function EventDetailPage({
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase text-neutral-500">Venue</dt>
-          <dd className="mt-1 text-sm">{event.venue}</dd>
+          <dd className="mt-1 text-sm">
+            {event.venue}{" "}
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-rose-700 hover:underline"
+            >
+              (view on map ↗)
+            </a>
+          </dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase text-neutral-500">Organizer</dt>
@@ -121,6 +138,17 @@ export default async function EventDetailPage({
           />
         )}
       </div>
+
+      {canSeeAttendees && (
+        <div className="mt-12 border-t border-black/10 pt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-rose-700">
+            Who&apos;s going ({attendees.length})
+          </h2>
+          <div className="mt-4">
+            <AttendeeList attendees={attendees} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
