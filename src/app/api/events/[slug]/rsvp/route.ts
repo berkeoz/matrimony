@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createRsvp, cancelRsvp } from "@/lib/rsvp";
 import { getProfile, isProfileComplete } from "@/lib/profile";
+import { hasActiveSubscription } from "@/lib/subscription";
 import { sendRsvpPendingEmail, sendWaitlistPromotedEmail, type EventEmailInfo } from "@/lib/mail";
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -23,6 +24,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   const event = await prisma.event.findUnique({ where: { slug } });
   if (!event) {
     return NextResponse.json({ error: "Event not found." }, { status: 404 });
+  }
+
+  if (event.priceCents > 0 && !(await hasActiveSubscription(session.user.id))) {
+    return NextResponse.json(
+      {
+        error:
+          "Online payments for this event aren't available yet — it's free for subscribers in the meantime.",
+        code: "PAYMENT_NOT_AVAILABLE",
+      },
+      { status: 403 }
+    );
   }
 
   const result = await createRsvp(event, session.user.id);

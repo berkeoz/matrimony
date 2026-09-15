@@ -23,10 +23,12 @@ export default function ChatThread({
   matchId,
   currentUserId,
   initialMessages,
+  canSend,
 }: {
   matchId: string;
   currentUserId: string;
   initialMessages: Message[];
+  canSend: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [text, setText] = useState("");
@@ -120,28 +122,35 @@ export default function ChatThread({
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSend} className="flex items-end gap-2 border-t border-black/10 p-3">
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend(e);
-            }
-          }}
-          rows={1}
-          placeholder="Type a message…"
-          className="flex-1 resize-none rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-rose-700 dark:border-white/15"
-        />
-        <button
-          type="submit"
-          disabled={sending || !text.trim()}
-          className="rounded-full bg-rose-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:opacity-50"
-        >
-          Send
-        </button>
-      </form>
+      {canSend ? (
+        <form onSubmit={handleSend} className="flex items-end gap-2 border-t border-black/10 p-3">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend(e);
+              }
+            }}
+            rows={1}
+            placeholder="Type a message…"
+            className="flex-1 resize-none rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-rose-700 dark:border-white/15"
+          />
+          <button
+            type="submit"
+            disabled={sending || !text.trim()}
+            className="rounded-full bg-rose-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:opacity-50"
+          >
+            Send
+          </button>
+        </form>
+      ) : (
+        <p className="border-t border-black/10 p-3 text-xs text-neutral-500">
+          You&apos;ve reached the free messaging limit (2 conversations). Subscribe to message more
+          people — you can still read this conversation.
+        </p>
+      )}
       {error && <p className="px-3 pb-2 text-xs text-red-600">{error}</p>}
     </div>
   );

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getProfile, isProfileComplete } from "@/lib/profile";
-import { expressInterest } from "@/lib/matching";
+import { expressInterest, canExpressInterest, getInterestUsage } from "@/lib/matching";
 import { interestActionSchema } from "@/lib/validation";
 import { sendMatchEmail } from "@/lib/mail";
 
@@ -36,6 +36,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Member not found." }, { status: 404 });
   }
 
+  if (!(await canExpressInterest(session.user.id))) {
+    return NextResponse.json(
+      {
+        error: "Free members can express interest in up to 2 people. Subscribe to express interest in more.",
+        code: "FREE_LIMIT_REACHED",
+        usage: await getInterestUsage(session.user.id),
+      },
+      { status: 403 }
+    );
+  }
+
   const result = await expressInterest(session.user.id, toUserId);
 
   if (result.matched) {
@@ -61,5 +72,6 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json(result);
+  const usage = await getInterestUsage(session.user.id);
+  return NextResponse.json({ ...result, usage });
 }

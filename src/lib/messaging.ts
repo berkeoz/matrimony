@@ -1,4 +1,23 @@
 import { prisma } from "@/lib/prisma";
+import { hasActiveSubscription } from "@/lib/subscription";
+
+// A free member can only send messages in this many distinct matches at
+// once — conversations they've already started still work past the cap,
+// only starting a new one is blocked. Subscribers are unlimited.
+export const FREE_MESSAGE_LIMIT = 2;
+
+export async function canMessageMatch(userId: string, matchId: string): Promise<boolean> {
+  if (await hasActiveSubscription(userId)) return true;
+
+  const startedMatches = await prisma.message.findMany({
+    where: { senderId: userId },
+    distinct: ["matchId"],
+    select: { matchId: true },
+  });
+
+  if (startedMatches.some((m) => m.matchId === matchId)) return true;
+  return startedMatches.length < FREE_MESSAGE_LIMIT;
+}
 
 export async function getUserMatch(matchId: string, userId: string) {
   const match = await prisma.match.findUnique({

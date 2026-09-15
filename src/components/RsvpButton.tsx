@@ -10,15 +10,21 @@ export default function RsvpButton({
   slug,
   initialStatus,
   isLoggedIn,
+  priceCents = 0,
+  hasActiveSubscription = false,
 }: {
   slug: string;
   initialStatus: RsvpState;
   isLoggedIn: boolean;
+  priceCents?: number;
+  hasActiveSubscription?: boolean;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<RsvpState>(initialStatus);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const paymentBlocked = priceCents > 0 && !hasActiveSubscription && status === "NONE";
 
   if (!isLoggedIn) {
     return (
@@ -116,6 +122,20 @@ export default function RsvpButton({
           </button>
         </div>
         {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      </div>
+    );
+  }
+
+  if (paymentBlocked) {
+    return (
+      <div>
+        <p className="inline-flex items-center gap-2 rounded-full bg-neutral-100 px-4 py-2 text-sm font-semibold text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+          Payment coming soon
+        </p>
+        <p className="mt-2 text-xs text-neutral-500">
+          Online payments for this event aren&apos;t available yet. Subscribers attend free in the
+          meantime.
+        </p>
       </div>
     );
   }

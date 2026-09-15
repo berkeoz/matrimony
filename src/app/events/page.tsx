@@ -48,6 +48,7 @@ export default async function EventsPage() {
                 <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">{event.description}</p>
                 <p className="mt-4 text-xs font-medium text-neutral-500">
                   Organized by {event.organizer}
+                  {event.priceCents > 0 && ` · $${(event.priceCents / 100).toFixed(2)}`}
                 </p>
                 {!rsvpOpen ? (
                   <p className="mt-2 text-xs font-semibold text-neutral-400">RSVPs closed</p>

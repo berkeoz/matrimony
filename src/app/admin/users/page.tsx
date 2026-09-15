@@ -14,6 +14,7 @@ export default async function AdminUsersPage() {
       role: true,
       emailVerified: true,
       createdAt: true,
+      subscription: { select: { plan: true, status: true, expiresAt: true } },
     },
   });
 
@@ -38,6 +39,7 @@ export default async function AdminUsersPage() {
               <th className="px-4 py-3 font-semibold">Email</th>
               <th className="px-4 py-3 font-semibold">Role</th>
               <th className="px-4 py-3 font-semibold">Verified</th>
+              <th className="px-4 py-3 font-semibold">Subscription</th>
               <th className="px-4 py-3 font-semibold">Joined</th>
               <th className="px-4 py-3 font-semibold text-right">Actions</th>
             </tr>
@@ -51,6 +53,22 @@ export default async function AdminUsersPage() {
                 email={user.email}
                 role={user.role}
                 emailVerified={Boolean(user.emailVerified)}
+                subscription={
+                  user.subscription
+                    ? {
+                        plan: user.subscription.plan,
+                        status: user.subscription.status,
+                        isActive:
+                          user.subscription.status === "ACTIVE" &&
+                          user.subscription.expiresAt > new Date(),
+                        expiresAt: user.subscription.expiresAt.toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        }),
+                      }
+                    : null
+                }
                 createdAt={user.createdAt.toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "short",

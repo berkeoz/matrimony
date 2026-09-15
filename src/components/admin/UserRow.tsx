@@ -4,6 +4,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type Role = "MEMBER" | "ORGANIZER" | "ADMIN";
+type Plan = "MONTHLY" | "YEARLY";
+
+type Subscription = {
+  plan: Plan;
+  status: "ACTIVE" | "CANCELLED";
+  isActive: boolean;
+  expiresAt: string;
+} | null;
 
 export default function UserRow({
   id,
@@ -11,6 +19,7 @@ export default function UserRow({
   email,
   role,
   emailVerified,
+  subscription,
   createdAt,
   isSelf,
 }: {
@@ -19,12 +28,48 @@ export default function UserRow({
   email: string;
   role: Role;
   emailVerified: boolean;
+  subscription: Subscription;
   createdAt: string;
   isSelf: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function handleGrant(plan: Plan) {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/admin/users/${id}/subscription`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "grant", plan }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Failed to grant subscription.");
+      return;
+    }
+    router.refresh();
+  }
+
+  async function handleCancelSubscription() {
+    if (!confirm(`Cancel ${email}'s subscription?`)) return;
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/admin/users/${id}/subscription`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "cancel" }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Failed to cancel subscription.");
+      return;
+    }
+    router.refresh();
+  }
 
   async function handleRoleChange(newRole: Role) {
     setBusy(true);
@@ -78,6 +123,47 @@ export default function UserRow({
           <span className="text-green-700 dark:text-green-400">Yes</span>
         ) : (
           <span className="text-neutral-400">No</span>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        {subscription?.isActive ? (
+          <div>
+            <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-800 dark:bg-green-900/40 dark:text-green-300">
+              {subscription.plan === "MONTHLY" ? "Monthly" : "Yearly"} · until {subscription.expiresAt}
+            </span>
+            <div className="mt-1">
+              <button
+                type="button"
+                onClick={handleCancelSubscription}
+                disabled={busy}
+                className="text-[11px] font-semibold text-red-700 hover:underline disabled:opacity-40 dark:text-red-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-neutral-400">Free</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleGrant("MONTHLY")}
+                disabled={busy}
+                className="text-[11px] font-semibold text-rose-700 hover:underline disabled:opacity-40"
+              >
+                Grant monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGrant("YEARLY")}
+                disabled={busy}
+                className="text-[11px] font-semibold text-rose-700 hover:underline disabled:opacity-40"
+              >
+                Grant yearly
+              </button>
+            </div>
+          </div>
         )}
       </td>
       <td className="px-4 py-3 text-neutral-600 dark:text-neutral-400">{createdAt}</td>

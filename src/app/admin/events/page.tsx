@@ -25,6 +25,7 @@ export default async function AdminEventsPage() {
         organizer: event.organizer,
         capacity: event.capacity,
         status: event.status,
+        priceCents: event.priceCents,
         confirmedCount,
         attendees,
       };

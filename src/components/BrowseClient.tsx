@@ -14,6 +14,8 @@ type BrowseCard = {
   photoUrl: string | null;
 };
 
+type InterestUsage = { used: number; limit: number; unlimited: boolean };
+
 const EDUCATION_OPTIONS = [
   { value: "", label: "Any education" },
   { value: "HIGH_SCHOOL", label: "High school" },
@@ -50,6 +52,7 @@ export default function BrowseClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actioned, setActioned] = useState<Record<string, "interested" | "matched" | "passed">>({});
+  const [interestUsage, setInterestUsage] = useState<InterestUsage | null>(null);
 
   const load = useCallback(async (nextPage: number, activeFilters: Filters) => {
     setLoading(true);
@@ -72,6 +75,7 @@ export default function BrowseClient() {
     }
     setCards(data.cards);
     setHasMore(data.hasMore);
+    if (data.interestUsage) setInterestUsage(data.interestUsage);
   }, []);
 
   useEffect(() => {
@@ -100,8 +104,11 @@ export default function BrowseClient() {
       body: JSON.stringify({ toUserId: userId }),
     });
     const data = await res.json().catch(() => ({}));
+    if (data.usage) setInterestUsage(data.usage);
     if (res.ok) {
       setActioned((prev) => ({ ...prev, [userId]: data.matched ? "matched" : "interested" }));
+    } else if (data.code === "FREE_LIMIT_REACHED") {
+      setError(data.error);
     }
   }
 
@@ -187,6 +194,14 @@ export default function BrowseClient() {
 
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
+      {interestUsage && !interestUsage.unlimited && (
+        <p className="mt-4 rounded-xl bg-neutral-100 px-4 py-2 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+          {interestUsage.used >= interestUsage.limit
+            ? "You've used your 2 free interests. Subscribe to express interest in more people — passing stays unlimited."
+            : `You've expressed interest in ${interestUsage.used} of ${interestUsage.limit} free profiles.`}
+        </p>
+      )}
+
       {loading ? (
         <p className="mt-8 text-sm text-neutral-500">Loading…</p>
       ) : cards.length === 0 ? (
@@ -230,7 +245,10 @@ export default function BrowseClient() {
                     <button
                       type="button"
                       onClick={() => handleInterest(card.userId)}
-                      className="flex-1 rounded-full bg-rose-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-800"
+                      disabled={Boolean(
+                        interestUsage && !interestUsage.unlimited && interestUsage.used >= interestUsage.limit
+                      )}
+                      className="flex-1 rounded-full bg-rose-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-800 disabled:opacity-40"
                     >
                       Express interest
                     </button>

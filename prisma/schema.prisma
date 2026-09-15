@@ -37,6 +37,7 @@ model User {
   matchesAsA        Match[]    @relation("MatchA")
   matchesAsB        Match[]    @relation("MatchB")
   messagesSent      Message[]  @relation("MessageSender")
+  subscription      Subscription?
 }
 
 model Account {
@@ -126,6 +127,9 @@ model Event {
   organizer       String
   capacity        Int         @default(0)
   status          EventStatus @default(OPEN)
+  // 0 = free. Members with an active Subscription always attend for free
+  // regardless of this value — see src/lib/subscription.ts.
+  priceCents      Int         @default(0)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -279,4 +283,30 @@ model Message {
   sender User  @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([matchId, createdAt])
+}
+
+enum SubscriptionPlan {
+  MONTHLY
+  YEARLY
+}
+
+// CANCELLED means an admin ended it early. Otherwise "active" is computed as
+// status == ACTIVE && expiresAt > now (see src/lib/subscription.ts) rather
+// than flipped by a cron job, so there's no EXPIRED status to keep in sync.
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+}
+
+model Subscription {
+  id        String             @id @default(cuid())
+  userId    String             @unique
+  plan      SubscriptionPlan
+  status    SubscriptionStatus @default(ACTIVE)
+  startsAt  DateTime           @default(now())
+  expiresAt DateTime
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

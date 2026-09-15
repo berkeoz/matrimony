@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getProfile, isProfileComplete } from "@/lib/profile";
-import { getBrowseCandidates, type BrowseFilters } from "@/lib/matching";
+import { getBrowseCandidates, getInterestUsage, type BrowseFilters } from "@/lib/matching";
 import { educationLevelSchema, maritalStatusSchema, habitLevelSchema } from "@/lib/validation";
 
 export async function GET(request: Request) {
@@ -39,6 +39,9 @@ export async function GET(request: Request) {
   const alcohol = habitLevelSchema.safeParse(searchParams.get("alcohol"));
   if (alcohol.success) filters.alcohol = alcohol.data;
 
-  const result = await getBrowseCandidates(session.user.id, profile.seekingGender, filters, page);
-  return NextResponse.json(result);
+  const [result, interestUsage] = await Promise.all([
+    getBrowseCandidates(session.user.id, profile.seekingGender, filters, page),
+    getInterestUsage(session.user.id),
+  ]);
+  return NextResponse.json({ ...result, interestUsage });
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getUserMatch, getMessages, sendMessage, markRead } from "@/lib/messaging";
+import { getUserMatch, getMessages, sendMessage, markRead, canMessageMatch } from "@/lib/messaging";
 import { sendMessageSchema } from "@/lib/validation";
 import { sendNewMessageEmail } from "@/lib/mail";
 
@@ -33,6 +33,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ mat
   const match = await getUserMatch(matchId, session.user.id);
   if (!match) {
     return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
+  }
+
+  if (!(await canMessageMatch(session.user.id, matchId))) {
+    return NextResponse.json(
+      {
+        error: "Free members can message up to 2 matches. Subscribe to message more people.",
+        code: "FREE_LIMIT_REACHED",
+      },
+      { status: 403 }
+    );
   }
 
   const body = await request.json().catch(() => null);

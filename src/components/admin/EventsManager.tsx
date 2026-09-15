@@ -31,6 +31,7 @@ type EventItem = {
   organizer: string;
   capacity: number;
   status: EventStatus;
+  priceCents: number;
   confirmedCount: number;
   attendees: Attendee[];
 };
@@ -48,6 +49,7 @@ const emptyForm: FormFields = {
   organizer: "",
   capacity: 0,
   status: "OPEN",
+  priceCents: 0,
 };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -216,6 +218,26 @@ function EventForm({
           </select>
         </Field>
       </div>
+
+      <Field label="Price in USD (0 = free)">
+        <input
+          type="number"
+          min={0}
+          step="0.01"
+          value={form.priceCents / 100}
+          onChange={(e) =>
+            setForm({ ...form, priceCents: Math.round(Number(e.target.value || 0) * 100) })
+          }
+          className={`${inputClass} sm:w-40`}
+        />
+      </Field>
+      {form.priceCents > 0 && (
+        <p className="text-xs text-amber-700 dark:text-amber-400">
+          Online payments aren&apos;t wired up yet, so members without a subscription can&apos;t
+          RSVP to this event until that&apos;s built. Subscribed members attend free.
+        </p>
+      )}
+
       {eventId && form.status === "CANCELLED" && (
         <p className="text-xs text-amber-700 dark:text-amber-400">
           Saving will email everyone currently RSVP&apos;d that this event is cancelled.
@@ -361,6 +383,7 @@ function EventRow({ event, onChanged }: { event: EventItem; onChanged: () => voi
           </p>
           <p className="mt-1 text-xs text-neutral-400">
             {event.confirmedCount} / {event.capacity} confirmed · /events/{event.slug}
+            {event.priceCents > 0 && ` · $${(event.priceCents / 100).toFixed(2)}`}
           </p>
         </div>
         <div className="flex shrink-0 gap-3">

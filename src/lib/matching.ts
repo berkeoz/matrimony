@@ -1,6 +1,25 @@
 import { prisma } from "@/lib/prisma";
 import { calculateAge } from "@/lib/profile";
+import { hasActiveSubscription } from "@/lib/subscription";
 import type { EducationLevel, MaritalStatus, HabitLevel } from "@prisma/client";
+
+// Passing is unlimited (it's just skipping someone) — this caps how many
+// people a free member can pursue by expressing interest, the mechanic that
+// actually consumes the platform's matchmaking value.
+export const FREE_INTEREST_LIMIT = 2;
+
+export type InterestUsage = { used: number; limit: number; unlimited: boolean };
+
+export async function getInterestUsage(userId: string): Promise<InterestUsage> {
+  const unlimited = await hasActiveSubscription(userId);
+  const used = await prisma.interest.count({ where: { fromUserId: userId } });
+  return { used, limit: FREE_INTEREST_LIMIT, unlimited };
+}
+
+export async function canExpressInterest(userId: string): Promise<boolean> {
+  const usage = await getInterestUsage(userId);
+  return usage.unlimited || usage.used < usage.limit;
+}
 
 export type BrowseFilters = {
   city?: string;

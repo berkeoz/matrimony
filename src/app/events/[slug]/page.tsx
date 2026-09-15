@@ -5,6 +5,7 @@ import { getEventBySlug } from "@/lib/events";
 import { formatWallClockDate } from "@/lib/datetime";
 import { getConfirmedCount, getUserRsvp, getConfirmedAttendeeProfiles, canViewAttendeeList } from "@/lib/rsvp";
 import { getProfile, isProfileComplete } from "@/lib/profile";
+import { hasActiveSubscription } from "@/lib/subscription";
 import { auth } from "@/lib/auth";
 import RsvpButton from "@/components/RsvpButton";
 import AttendeeList from "@/components/AttendeeList";
@@ -39,10 +40,11 @@ export default async function EventDetailPage({
   if (!event) notFound();
 
   const session = await auth();
-  const [confirmedCount, userRsvp, profile] = await Promise.all([
+  const [confirmedCount, userRsvp, profile, subscribed] = await Promise.all([
     getConfirmedCount(event.id),
     session?.user ? getUserRsvp(event.id, session.user.id) : Promise.resolve(null),
     session?.user ? getProfile(session.user.id) : Promise.resolve(null),
+    session?.user ? hasActiveSubscription(session.user.id) : Promise.resolve(false),
   ]);
   const profileComplete = isProfileComplete(profile);
 
@@ -96,6 +98,14 @@ export default async function EventDetailPage({
           <dd className="mt-1 text-sm">{event.organizer}</dd>
         </div>
         <div>
+          <dt className="text-xs font-semibold uppercase text-neutral-500">Price</dt>
+          <dd className="mt-1 text-sm">
+            {event.priceCents === 0
+              ? "Free"
+              : `$${(event.priceCents / 100).toFixed(2)}${subscribed ? " (free for you — subscriber)" : ""}`}
+          </dd>
+        </div>
+        <div>
           <dt className="text-xs font-semibold uppercase text-neutral-500">Capacity</dt>
           <dd className="mt-1 text-sm">
             {confirmedCount} / {event.capacity} RSVP&apos;d
@@ -135,6 +145,8 @@ export default async function EventDetailPage({
             slug={event.slug}
             initialStatus={initialRsvpStatus}
             isLoggedIn={Boolean(session?.user)}
+            priceCents={event.priceCents}
+            hasActiveSubscription={subscribed}
           />
         )}
       </div>

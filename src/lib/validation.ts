@@ -54,6 +54,7 @@ export const eventSchema = z.object({
   organizer: z.string().trim().min(1).max(150),
   capacity: z.coerce.number().int().min(0),
   status: eventStatusSchema,
+  priceCents: z.coerce.number().int().min(0).default(0),
 });
 
 export const homepageSectionSchema = z.object({
@@ -117,6 +118,13 @@ export const sendMessageSchema = z.object({
 export const interestActionSchema = z.object({
   toUserId: z.string().trim().min(1),
 });
+
+export const subscriptionPlanSchema = z.enum(["MONTHLY", "YEARLY"]);
+
+export const adminSubscriptionActionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("grant"), plan: subscriptionPlanSchema }),
+  z.object({ action: z.literal("cancel") }),
+]);
 
 export const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(150),

@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getUserMatch, getMessages, markRead } from "@/lib/messaging";
+import { getUserMatch, getMessages, markRead, canMessageMatch } from "@/lib/messaging";
 import ChatThread from "@/components/ChatThread";
 
 export default async function ConversationPage({
@@ -19,7 +19,10 @@ export default async function ConversationPage({
   const match = await getUserMatch(matchId, session.user.id);
   if (!match) notFound();
 
-  const messages = await getMessages(matchId);
+  const [messages, canSend] = await Promise.all([
+    getMessages(matchId),
+    canMessageMatch(session.user.id, matchId),
+  ]);
   await markRead(matchId, session.user.id);
 
   return (
@@ -41,6 +44,7 @@ export default async function ConversationPage({
         <ChatThread
           matchId={matchId}
           currentUserId={session.user.id}
+          canSend={canSend}
           initialMessages={messages.map((m) => ({
             id: m.id,
             senderId: m.senderId,
