@@ -110,6 +110,10 @@ export const profileSchema = z.object({
   lookingFor: z.string().trim().max(3000).nullable().optional(),
 });
 
+export const interestActionSchema = z.object({
+  toUserId: z.string().trim().min(1),
+});
+
 export const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(150),
   email: z.string().trim().toLowerCase().email("Enter a valid email address"),

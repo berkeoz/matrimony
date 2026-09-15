@@ -2,13 +2,22 @@ import Link from "next/link";
 import type { Session } from "next-auth";
 import SignOutButton from "@/components/SignOutButton";
 
-const navLinks = [
+const publicNavLinks = [
   { href: "/", label: "Home" },
   { href: "/events", label: "Events" },
   { href: "/#success-stories", label: "Success Stories" },
 ];
 
+const memberNavLinks = [
+  { href: "/", label: "Home" },
+  { href: "/browse", label: "Browse" },
+  { href: "/matches", label: "Matches" },
+  { href: "/events", label: "Events" },
+];
+
 export default function Header({ session }: { session: Session | null }) {
+  const navLinks = session?.user ? memberNavLinks : publicNavLinks;
+
   return (
     <header className="sticky top-0 z-40 border-b border-black/10 bg-[var(--background)]/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">

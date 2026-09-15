@@ -59,6 +59,28 @@ export async function sendVerificationEmail(params: { to: string; name: string; 
   });
 }
 
+export async function sendMatchEmail(params: {
+  to: string;
+  name: string;
+  matchName: string;
+  matchesUrl: string;
+}) {
+  const { to, name, matchName, matchesUrl } = params;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `It's a match! You and ${matchName}`,
+    html: shell(
+      `It's a match, ${name}!`,
+      `
+        <p>You and <strong>${escapeHtml(matchName)}</strong> have both expressed interest in each other.</p>
+        ${button(matchesUrl, "View your matches")}
+      `
+    ),
+  });
+}
+
 export async function sendPasswordResetEmail(params: { to: string; name: string; resetUrl: string }) {
   const { to, name, resetUrl } = params;
 

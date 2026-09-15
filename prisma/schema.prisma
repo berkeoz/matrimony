@@ -29,6 +29,13 @@ model User {
   sessions Session[]
   rsvps    EventRsvp[]
   profile  Profile?
+
+  interestsSent     Interest[] @relation("InterestFrom")
+  interestsReceived Interest[] @relation("InterestTo")
+  passesSent        Pass[]     @relation("PassFrom")
+  passesReceived    Pass[]     @relation("PassTo")
+  matchesAsA        Match[]    @relation("MatchA")
+  matchesAsB        Match[]    @relation("MatchB")
 }
 
 model Account {
@@ -217,4 +224,43 @@ model HomepageContent {
   ctaTitle       String
   ctaDescription String   @db.Text
   updatedAt      DateTime @updatedAt
+}
+
+model Interest {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  createdAt  DateTime @default(now())
+
+  fromUser User @relation("InterestFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("InterestTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+}
+
+model Pass {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  createdAt  DateTime @default(now())
+
+  fromUser User @relation("PassFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("PassTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+}
+
+// userAId is always the lexicographically smaller of the two user ids, so
+// a match between two users has exactly one row regardless of who
+// completed it.
+model Match {
+  id        String   @id @default(cuid())
+  userAId   String
+  userBId   String
+  createdAt DateTime @default(now())
+
+  userA User @relation("MatchA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB User @relation("MatchB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
 }
