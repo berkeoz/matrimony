@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import { auth } from "@/lib/auth";
+import { getTotalUnreadCount } from "@/lib/messaging";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,6 +26,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const session = await auth();
   const needsVerification = Boolean(session?.user) && !session?.user.emailVerified;
+  const unreadCount = session?.user ? await getTotalUnreadCount(session.user.id) : 0;
 
   return (
     <html
@@ -32,7 +34,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <Header session={session} />
+        <Header session={session} unreadCount={unreadCount} />
         {needsVerification && <VerifyEmailBanner />}
         <main className="flex-1">{children}</main>
         <Footer />

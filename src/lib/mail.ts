@@ -59,6 +59,28 @@ export async function sendVerificationEmail(params: { to: string; name: string; 
   });
 }
 
+export async function sendNewMessageEmail(params: {
+  to: string;
+  name: string;
+  fromName: string;
+  conversationUrl: string;
+}) {
+  const { to, name, fromName, conversationUrl } = params;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `${fromName} sent you a message`,
+    html: shell(
+      `Hi ${name}, you have a new message`,
+      `
+        <p><strong>${escapeHtml(fromName)}</strong> just messaged you.</p>
+        ${button(conversationUrl, "Read message")}
+      `
+    ),
+  });
+}
+
 export async function sendMatchEmail(params: {
   to: string;
   name: string;

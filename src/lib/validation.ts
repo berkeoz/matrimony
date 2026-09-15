@@ -110,6 +110,10 @@ export const profileSchema = z.object({
   lookingFor: z.string().trim().max(3000).nullable().optional(),
 });
 
+export const sendMessageSchema = z.object({
+  body: z.string().trim().min(1, "Message can't be empty").max(3000),
+});
+
 export const interestActionSchema = z.object({
   toUserId: z.string().trim().min(1),
 });

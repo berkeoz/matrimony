@@ -36,6 +36,7 @@ model User {
   passesReceived    Pass[]     @relation("PassTo")
   matchesAsA        Match[]    @relation("MatchA")
   matchesAsB        Match[]    @relation("MatchB")
+  messagesSent      Message[]  @relation("MessageSender")
 }
 
 model Account {
@@ -261,6 +262,21 @@ model Match {
 
   userA User @relation("MatchA", fields: [userAId], references: [id], onDelete: Cascade)
   userB User @relation("MatchB", fields: [userBId], references: [id], onDelete: Cascade)
+  messages Message[]
 
   @@unique([userAId, userBId])
+}
+
+model Message {
+  id        String    @id @default(cuid())
+  matchId   String
+  senderId  String
+  body      String    @db.Text
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  match  Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  sender User  @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, createdAt])
 }

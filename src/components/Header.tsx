@@ -15,7 +15,13 @@ const memberNavLinks = [
   { href: "/events", label: "Events" },
 ];
 
-export default function Header({ session }: { session: Session | null }) {
+export default function Header({
+  session,
+  unreadCount = 0,
+}: {
+  session: Session | null;
+  unreadCount?: number;
+}) {
   const navLinks = session?.user ? memberNavLinks : publicNavLinks;
 
   return (
@@ -30,8 +36,17 @@ export default function Header({ session }: { session: Session | null }) {
 
         <nav className="hidden items-center gap-8 text-sm font-medium text-neutral-600 sm:flex dark:text-neutral-300">
           {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="transition hover:text-rose-700">
+            <Link
+              key={link.href}
+              href={link.href}
+              className="relative transition hover:text-rose-700"
+            >
               {link.label}
+              {link.href === "/matches" && unreadCount > 0 && (
+                <span className="absolute -right-3 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-700 px-1 text-[10px] font-semibold text-white">
+                  {unreadCount}
+                </span>
+              )}
             </Link>
           ))}
         </nav>

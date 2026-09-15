@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getMatches } from "@/lib/matching";
+import { getConversations } from "@/lib/messaging";
 
 export default async function MatchesPage() {
   const session = await auth();
@@ -10,16 +10,16 @@ export default async function MatchesPage() {
     redirect("/login");
   }
 
-  const matches = await getMatches(session.user.id);
+  const conversations = await getConversations(session.user.id);
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16">
+    <div className="mx-auto max-w-2xl px-6 py-16">
       <h1 className="text-3xl font-semibold tracking-tight">Your matches</h1>
       <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
         People you and you both expressed interest in.
       </p>
 
-      {matches.length === 0 ? (
+      {conversations.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-black/10 p-6 text-center">
           <p className="text-sm text-neutral-600 dark:text-neutral-400">No matches yet.</p>
           <Link
@@ -30,27 +30,30 @@ export default async function MatchesPage() {
           </Link>
         </div>
       ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {matches.map((match) => (
-            <div key={match.userId} className="rounded-2xl border border-black/10 p-4">
-              <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-black/10 bg-neutral-100 dark:bg-neutral-800">
-                {match.photoUrl && (
-                  <Image src={match.photoUrl} alt="" fill sizes="300px" className="object-cover" />
+        <div className="mt-8 space-y-3">
+          {conversations.map((c) => (
+            <Link
+              key={c.matchId}
+              href={`/matches/${c.matchId}`}
+              className="flex items-center gap-3 rounded-2xl border border-black/10 p-3 transition hover:border-rose-700"
+            >
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-black/10 bg-neutral-100 dark:bg-neutral-800">
+                {c.otherPhotoUrl && (
+                  <Image src={c.otherPhotoUrl} alt="" fill sizes="48px" className="object-cover" />
                 )}
               </div>
-              <p className="mt-3 text-sm font-semibold">
-                {match.name}
-                {match.age !== null && <span className="font-normal text-neutral-500">, {match.age}</span>}
-              </p>
-              {match.city && <p className="text-xs text-neutral-500">{match.city}</p>}
-              <button
-                type="button"
-                disabled
-                className="mt-3 w-full cursor-not-allowed rounded-full border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-400 dark:border-neutral-700"
-              >
-                Messaging coming soon
-              </button>
-            </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">{c.otherName}</p>
+                <p className="truncate text-xs text-neutral-500">
+                  {c.lastMessage ?? "Say hello — start the conversation."}
+                </p>
+              </div>
+              {c.unreadCount > 0 && (
+                <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-rose-700 px-1.5 text-[10px] font-semibold text-white">
+                  {c.unreadCount}
+                </span>
+              )}
+            </Link>
           ))}
         </div>
       )}
