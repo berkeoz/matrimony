@@ -40,6 +40,10 @@ export default async function EventDetailPage({
   if (!event) notFound();
 
   const session = await auth();
+  const canPreviewUnapproved =
+    session?.user.role === "ADMIN" || (session?.user.role === "ORGANIZER" && event.organizerId === session.user.id);
+  if (event.reviewStatus !== "APPROVED" && !canPreviewUnapproved) notFound();
+
   const [confirmedCount, userRsvp, profile, subscribed] = await Promise.all([
     getConfirmedCount(event.id),
     session?.user ? getUserRsvp(event.id, session.user.id) : Promise.resolve(null),
@@ -67,6 +71,14 @@ export default async function EventDetailPage({
       <Link href="/events" className="text-sm font-semibold text-rose-700 hover:underline">
         ← All events
       </Link>
+
+      {event.reviewStatus !== "APPROVED" && canPreviewUnapproved && (
+        <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+          {event.reviewStatus === "PENDING"
+            ? "This event is awaiting admin approval and isn't visible to the public yet."
+            : "This event was not approved and isn't visible to the public."}
+        </p>
+      )}
 
       <p className="mt-6 text-xs font-semibold uppercase tracking-wide text-rose-700">
         {event.city} ·{" "}
@@ -120,6 +132,17 @@ export default async function EventDetailPage({
       </dl>
 
       <p className="mt-8 text-neutral-700 dark:text-neutral-300">{event.longDescription}</p>
+
+      {event.format && (
+        <div className="mt-6 rounded-2xl border border-black/10 p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-rose-700">
+            What to expect
+          </h2>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-700 dark:text-neutral-300">
+            {event.format}
+          </p>
+        </div>
+      )}
 
       <div className="mt-10">
         {isPast ? (

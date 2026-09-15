@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { successStorySchema } from "@/lib/validation";
+import { logAction } from "@/lib/audit";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { response } = await requireAdmin();
+  const { session, response } = await requireAdmin();
   if (response) return response;
 
   const { id } = await params;
@@ -15,14 +16,32 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const story = await prisma.successStory.update({ where: { id }, data: parsed.data });
+
+  await logAction({
+    actorId: session!.user.id,
+    action: "success-story.update",
+    targetType: "SuccessStory",
+    targetId: story.id,
+    metadata: { names: story.names },
+  });
+
   return NextResponse.json({ story });
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { response } = await requireAdmin();
+  const { session, response } = await requireAdmin();
   if (response) return response;
 
   const { id } = await params;
-  await prisma.successStory.delete({ where: { id } });
+  const story = await prisma.successStory.delete({ where: { id } });
+
+  await logAction({
+    actorId: session!.user.id,
+    action: "success-story.delete",
+    targetType: "SuccessStory",
+    targetId: id,
+    metadata: { names: story.names },
+  });
+
   return NextResponse.json({ ok: true });
 }

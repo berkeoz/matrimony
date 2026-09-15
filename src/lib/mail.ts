@@ -318,6 +318,40 @@ export async function sendEventCancelledEmail(params: {
   });
 }
 
+export async function sendEventApprovedEmail(params: { to: string; name: string; eventTitle: string }) {
+  const { to, name, eventTitle } = params;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `Your event was approved — ${eventTitle}`,
+    html: shell(
+      `Hi ${name}, your event is live`,
+      `
+        <p><strong>${escapeHtml(eventTitle)}</strong> has been approved and is now visible on the
+        Events page.</p>
+      `
+    ),
+  });
+}
+
+export async function sendEventRejectedEmail(params: { to: string; name: string; eventTitle: string }) {
+  const { to, name, eventTitle } = params;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `Your event wasn't approved — ${eventTitle}`,
+    html: shell(
+      `Hi ${name}`,
+      `
+        <p><strong>${escapeHtml(eventTitle)}</strong> wasn't approved for the public Events page.
+        Reach out to an admin if you'd like to know why, or edit and resubmit it.</p>
+      `
+    ),
+  });
+}
+
 export async function sendEventReminderEmail(params: {
   to: string;
   name: string;

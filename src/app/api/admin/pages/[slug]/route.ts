@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { pageContentSchema } from "@/lib/validation";
+import { logAction } from "@/lib/audit";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ slug: string }> }) {
-  const { response } = await requireAdmin();
+  const { session, response } = await requireAdmin();
   if (response) return response;
 
   const { slug } = await params;
@@ -18,6 +19,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sl
     where: { slug },
     create: { slug, ...parsed.data },
     update: parsed.data,
+  });
+
+  await logAction({
+    actorId: session!.user.id,
+    action: "page.update",
+    targetType: "Page",
+    targetId: page.slug,
   });
 
   return NextResponse.json({ page });

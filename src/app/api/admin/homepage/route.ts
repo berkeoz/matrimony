@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { homepageContentSchema } from "@/lib/validation";
+import { logAction } from "@/lib/audit";
 
 export async function PATCH(request: Request) {
-  const { response } = await requireAdmin();
+  const { session, response } = await requireAdmin();
   if (response) return response;
 
   const body = await request.json().catch(() => null);
@@ -17,6 +18,13 @@ export async function PATCH(request: Request) {
     where: { id: "homepage" },
     create: { id: "homepage", ...parsed.data },
     update: parsed.data,
+  });
+
+  await logAction({
+    actorId: session!.user.id,
+    action: "homepage.update",
+    targetType: "HomepageContent",
+    targetId: "homepage",
   });
 
   return NextResponse.json({ content });

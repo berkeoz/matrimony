@@ -135,7 +135,7 @@ function canonicalPair(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
 }
 
-export type ExpressInterestResult = { matched: boolean };
+export type ExpressInterestResult = { matched: boolean; matchId?: string };
 
 export async function expressInterest(
   fromUserId: string,
@@ -156,13 +156,13 @@ export async function expressInterest(
   }
 
   const [userAId, userBId] = canonicalPair(fromUserId, toUserId);
-  await prisma.match.upsert({
+  const match = await prisma.match.upsert({
     where: { userAId_userBId: { userAId, userBId } },
     create: { userAId, userBId },
     update: {},
   });
 
-  return { matched: true };
+  return { matched: true, matchId: match.id };
 }
 
 export async function passUser(fromUserId: string, toUserId: string): Promise<void> {

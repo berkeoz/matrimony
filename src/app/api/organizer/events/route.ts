@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/require-admin";
-import { eventSchema } from "@/lib/validation";
+import { requireOrganizer } from "@/lib/require-organizer";
+import { organizerEventSchema } from "@/lib/validation";
 import { parseWallClockDateTime } from "@/lib/datetime";
 import { logAction } from "@/lib/audit";
 
 export async function POST(request: Request) {
-  const { session, response } = await requireAdmin();
+  const { session, response } = await requireOrganizer();
   if (response) return response;
 
   const body = await request.json().catch(() => null);
-  const parsed = eventSchema.safeParse(body);
+  const parsed = organizerEventSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
@@ -24,9 +24,10 @@ export async function POST(request: Request) {
   const event = await prisma.event.create({
     data: {
       ...rest,
+      priceCents: 0,
       startsAt: parseWallClockDateTime(startsAt),
       organizerId: session!.user.id,
-      reviewStatus: "APPROVED",
+      reviewStatus: "PENDING",
     },
   });
 
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
     action: "event.create",
     targetType: "Event",
     targetId: event.id,
-    metadata: { title: event.title, slug: event.slug },
+    metadata: { title: event.title, slug: event.slug, byOrganizer: true },
   });
 
   return NextResponse.json({ event }, { status: 201 });

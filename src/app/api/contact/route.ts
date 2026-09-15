@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { contactSchema } from "@/lib/validation";
 import { sendContactMessageEmail } from "@/lib/mail";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 const MIN_SUBMIT_MS = 2000; // reject submissions faster than a human could type
 
@@ -17,8 +18,10 @@ export async function POST(request: Request) {
 
   const { name, email, message, website, startedAt } = parsed.data;
 
-  // Honeypot field filled in, or submitted implausibly fast — likely a bot.
-  if (website || Date.now() - startedAt < MIN_SUBMIT_MS) {
+  // Honeypot field filled in, submitted implausibly fast, or failed the
+  // CAPTCHA — likely a bot. Treated identically (a silent no-op) so a bot
+  // can't tell which check caught it.
+  if (website || Date.now() - startedAt < MIN_SUBMIT_MS || !(await verifyTurnstile(body?.turnstileToken))) {
     return NextResponse.json({ ok: true });
   }
 

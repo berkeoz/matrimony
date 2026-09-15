@@ -50,6 +50,7 @@ export default async function ConversationPage({
             senderId: m.senderId,
             body: m.body,
             createdAt: m.createdAt.toISOString(),
+            readAt: m.readAt ? m.readAt.toISOString() : null,
           }))}
         />
       </div>

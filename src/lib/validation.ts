@@ -48,6 +48,7 @@ export const eventSchema = z.object({
     .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens only"),
   description: z.string().trim().min(1).max(500),
   longDescription: z.string().trim().min(1).max(5000),
+  format: z.string().trim().max(2000).nullable().optional(),
   city: z.string().trim().min(1).max(100),
   venue: z.string().trim().min(1).max(200),
   startsAt: z.string().min(1),
@@ -56,6 +57,10 @@ export const eventSchema = z.object({
   status: eventStatusSchema,
   priceCents: z.coerce.number().int().min(0).default(0),
 });
+
+// Organizers can create/edit their own events, but never set a price —
+// those stay free until payments exist, per product decision.
+export const organizerEventSchema = eventSchema.omit({ priceCents: true });
 
 export const homepageSectionSchema = z.object({
   title: z.string().trim().min(1).max(150),

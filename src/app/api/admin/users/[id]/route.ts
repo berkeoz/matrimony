@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { adminUpdateUserSchema } from "@/lib/validation";
+import { logAction } from "@/lib/audit";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session, response } = await requireAdmin();
@@ -24,6 +25,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     select: { id: true, name: true, email: true, role: true },
   });
 
+  await logAction({
+    actorId: session!.user.id,
+    action: "user.update",
+    targetType: "User",
+    targetId: user.id,
+    metadata: { email: user.email, changes: parsed.data },
+  });
+
   return NextResponse.json({ user });
 }
 
@@ -37,7 +46,15 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ error: "You can't delete your own account." }, { status: 400 });
   }
 
-  await prisma.user.delete({ where: { id } });
+  const user = await prisma.user.delete({ where: { id } });
+
+  await logAction({
+    actorId: session!.user.id,
+    action: "user.delete",
+    targetType: "User",
+    targetId: id,
+    metadata: { email: user.email },
+  });
 
   return NextResponse.json({ ok: true });
 }

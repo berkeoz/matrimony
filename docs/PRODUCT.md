@@ -16,7 +16,10 @@ alongside the code as features land.
 - **Data**: Prisma ORM over PostgreSQL (Neon). Models: `User`, `Account`/`Session`/
   `VerificationToken` (Auth.js), `PasswordResetToken`, `Page`, `SuccessStory`, `Event`/
   `EventRsvp`, `Profile`/`ProfilePhoto`, `HomepageContent`, `Interest`/`Pass`/`Match`, `Message`,
-  `Subscription`.
+  `Subscription`, `AuditLog`.
+- **CAPTCHA**: Cloudflare Turnstile on signup, forgot-password, and contact — free, unlimited.
+  Inactive (renders nothing, verification skipped) until `NEXT_PUBLIC_TURNSTILE_SITE_KEY` /
+  `TURNSTILE_SECRET_KEY` are set, same "wired but inactive" pattern as Google OAuth.
 - **Auth**: Auth.js (NextAuth) v5, Credentials provider + Prisma adapter, JWT sessions. Google
   OAuth is wired but inactive until its env vars are set.
 - **File storage**: Vercel Blob (public access) for profile photos.
@@ -41,16 +44,20 @@ alongside the code as features land.
 **Member** (requires login): `/profile`, `/browse`, `/matches`, `/matches/[matchId]` (chat
 thread), `/subscribe`.
 
+**Organizer** (requires `ORGANIZER` role): `/organizer/events`.
+
 **Admin** (requires `ADMIN` role): `/admin`, `/admin/users`, `/admin/events`,
-`/admin/success-stories`, `/admin/homepage`, `/admin/pages`.
+`/admin/success-stories`, `/admin/homepage`, `/admin/pages`, `/admin/audit-log`.
 
 **API**: REST-ish routes under `/api/*` mirroring the above — auth (`/api/signup`,
 `/api/forgot-password`, `/api/reset-password`, `/api/verify-email`, `/api/resend-verification`,
 `/api/auth/[...nextauth]`), account (`/api/account`), profile (`/api/profile`,
 `/api/profile/photos`, `/api/profile/photos/[id]`), events (`/api/events/[slug]/rsvp`,
 `/api/events/rsvp-confirm`), matching (`/api/browse`, `/api/interest`, `/api/pass`,
-`/api/matches/[matchId]/messages`), subscriptions (`/api/subscribe-request`), contact
-(`/api/contact`), admin (`/api/admin/*`), and a daily cron (`/api/cron/event-reminders`).
+`/api/matches/[matchId]/messages`), subscriptions (`/api/subscribe-request`), organizer's own
+events (`/api/organizer/events`, `/api/organizer/events/[id]`), contact (`/api/contact`), admin
+(`/api/admin/*`, including `/api/admin/events/[id]/review` for approving/rejecting organizer
+events), and a daily cron (`/api/cron/event-reminders`).
 
 ## What's built (as of this doc)
 
@@ -118,6 +125,31 @@ thread), `/subscribe`.
   (`FREE_MESSAGE_LIMIT` in `src/lib/messaging.ts`) — a conversation already started keeps
   working past the cap, only starting a new one is blocked, and the match/conversation itself is
   never hidden, just read-only. Both limits are lifted entirely by an active subscription.
+- **Match → chat handoff**: a mutual match on Browse shows "It's a match! 🎉 Start chatting →"
+  as a link straight into the new `/matches/[matchId]` thread (`expressInterest` in
+  `src/lib/matching.ts` returns the `matchId`), instead of just an inline badge.
+- **Read receipts**: the chat thread shows "Seen" under the last message you sent, once the
+  other person has opened the conversation (`Message.readAt`, already tracked, now surfaced in
+  `ChatThread.tsx`).
+- **Organizer role**: an `ORGANIZER` can create their own events from `/organizer/events`.
+  Organizer events are always free (price is forced to 0 server-side) and start in `PENDING`
+  review — invisible on the public Events page and blocked from RSVP until an admin approves
+  them from `/admin/events` (`Event.reviewStatus`: `PENDING`/`APPROVED`/`REJECTED`). Approving or
+  rejecting emails the organizer. Organizers can view and remove their own event's attendees
+  (the same tool admin already had, now also scoped to the owning organizer) but can't otherwise
+  touch anyone else's events, and have no access to `/admin`.
+- **Event format field**: `Event.format` is free text shown as a "What to expect" section on the
+  event page — e.g. explaining a speed-dating round structure. New events default to a
+  speed-dating explanation (`DEFAULT_EVENT_FORMAT` in `src/lib/events.ts`: ~5–10 minutes per
+  person before rotating), editable or clearable per event. Any "who do you want to see again"
+  decision is handled live at the event itself, not by the app.
+- **CAPTCHA**: Cloudflare Turnstile on signup, forgot-password, and contact. A failed check is
+  treated identically to the existing honeypot/timing checks (a silent no-op), so a bot can't
+  tell which defense caught it.
+- **Audit log**: every admin (and organizer) mutation — user create/update/delete, subscription
+  grant/cancel, event create/update/delete/approve/reject, attendee removal, success story and
+  homepage/page edits — is recorded in `AuditLog` (`src/lib/audit.ts`) with who did it and when,
+  viewable at `/admin/audit-log`.
 
 ## What's not built yet
 
@@ -125,30 +157,27 @@ thread), `/subscribe`.
   card today; subscriptions are admin-granted by hand and priced events can't be paid for by
   anyone (see Monetization below for the planned Stripe Checkout + webhook shape).
 - **Rate limiting** — signup/login/forgot-password have no brute-force protection beyond what
-  Vercel's platform provides. Worth a dedicated pass (see Security below) before real public
-  traffic.
-- **Match → chat handoff** — a mutual match currently just shows an inline "It's a match! 🎉"
-  badge on the Browse card and emails both members a link to `/matches`. It does not deep-link or
-  auto-navigate straight into the new chat thread. See "Open questions."
-- **Custom event fields** — `Event` has a fixed field set (title, description, city, venue, date,
-  organizer, capacity, price). There's no way for an admin to add event-specific fields (e.g. a
-  dress code, an RSVP question like dietary restrictions, a language). See "Open questions."
-- **Read receipts** — `Message.readAt` is already tracked in the database, but not shown in the
-  chat UI.
+  Vercel's platform provides and the new CAPTCHA. Worth a dedicated pass (see Security below)
+  before real public traffic.
+- **Custom event fields** — beyond the new `format` field, `Event` still has a fixed field set
+  (title, description, city, venue, date, organizer, capacity, price). There's no way for an
+  admin to add arbitrary event-specific fields (e.g. an RSVP question like dietary restrictions).
+  See "Open questions."
 - **Subscription self-checkout** — `/subscribe` lets a member *request* a plan (emails the
   admin), but there's no way to actually pay for or self-activate one; it's still admin-granted
   after the fact.
+- **Organizer event resubmission UX** — editing a `REJECTED` event resets it to `PENDING` for a
+  fresh review (so an organizer can fix and resubmit), but there's no in-app explanation of *why*
+  it was rejected beyond the admin reaching out directly.
 
 ## Roles — what MEMBER / ORGANIZER / ADMIN actually mean today
 
 - **MEMBER**: everyone who signs up. Can browse, RSVP to events, use matching/messaging once
   their profile is complete.
 - **ADMIN**: everything — user management, event/content CRUD, site configuration.
-- **ORGANIZER**: exists as a role but currently behaves identically to MEMBER. Originally scoped
-  as "a trusted community member who can create/manage their own events without full admin
-  access," but events ended up admin-only by request. Either build this out for real (organizers
-  create events, admin reviews/approves, or organizers get scoped access to just their own
-  events) or remove the role until there's a concrete need — see "Open questions."
+- **ORGANIZER**: a trusted community member who can create and manage their own events from
+  `/organizer/events`, always free and subject to admin approval before going public (see
+  "Organizer role" above). No access to `/admin` or anyone else's events/users/content.
 
 ## Monetization
 
@@ -216,6 +245,11 @@ Done as part of this build:
   server-side (`/api/interest`, `/api/matches/[matchId]/messages`, `/api/events/[slug]/rsvp`),
   not just hidden in the UI — confirmed by calling each route directly, bypassing the disabled
   buttons.
+- Organizer routes re-verify ownership server-side on every request (`event.organizerId ===
+  session.user.id`) — confirmed by calling the attendee-removal route as an organizer against an
+  event they don't own (403), not just relying on the UI not showing the button.
+- Every admin (and organizer) mutation writes an `AuditLog` entry — who, what, when — so actions
+  are traceable after the fact, not just prevented in the moment.
 - Contact form: honeypot field + minimum-submit-time check, and user-supplied content is
   HTML-escaped before being placed in the notification email (prevents HTML/script injection in
   an email an admin will open).
@@ -227,25 +261,14 @@ Done as part of this build:
 Known gaps, not yet addressed:
 - **No brute-force protection** on login or signup. A distributed/serverless-aware rate limiter
   (e.g., Upstash Redis + a sliding window, fronted by middleware) is the right fix when this goes
-  fully public — not urgent while the user base is small and known, but shouldn't be forgotten.
-- **No CAPTCHA** anywhere. Current spam defenses (honeypot, timing check) deter simple bots, not
-  a determined attacker.
-- **No audit log** of admin actions (who deleted which user, who cancelled which event). Worth
-  adding once there's more than one admin.
+  fully public — CAPTCHA deters bots, but doesn't cap attempt rate the way a rate limiter would.
 
 ## Open product questions (need a decision, not urgent)
 
-- **Organizer role**: build it out, or drop it? (see Roles section)
-- **Match → chat handoff**: should a mutual match jump the user straight into the new chat
-  thread (e.g. a "You matched! Start chatting" modal with a button into `/matches/[matchId]`),
-  or is the current inline badge + email + visiting `/matches` yourself enough? Leaning toward
-  adding the direct handoff — it's the expected UX from Bumble/Hinge/Tinder-style flows the user
-  referenced originally, and it's a small addition on top of what already exists.
-- **Custom event fields**: worth building, and if so, how flexible? Two shapes to choose between:
-  (a) a small fixed set of *optional* extra fields (dress code, language, an open RSVP note) added
-  directly to `Event`, or (b) a fully generic key/value custom-field builder the admin defines
-  per event. (a) is much less work and covers most realistic needs; (b) is only worth it if the
-  admin genuinely needs different custom questions per event on an ongoing basis.
+- **Custom event fields**: worth building beyond the new `format` field, and if so, how
+  flexible? A small fixed set of *optional* extra fields (e.g. an RSVP question like dietary
+  restrictions) vs. a fully generic key/value custom-field builder the admin defines per event —
+  the former is much less work and covers most realistic needs.
 - **Rate limiting / brute-force protection**: when to prioritize this before it becomes a real
   incident, given the site is not yet under significant traffic.
 - **Are the free-tier caps (2 interests, 2 conversations) and lack of subscription pricing right

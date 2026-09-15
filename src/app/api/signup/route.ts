@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { signupSchema } from "@/lib/validation";
 import { createVerificationToken } from "@/lib/verification-token";
 import { sendVerificationEmail } from "@/lib/mail";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -14,6 +15,10 @@ export async function POST(request: Request) {
       { error: parsed.error.issues[0]?.message ?? "Invalid input" },
       { status: 400 }
     );
+  }
+
+  if (!(await verifyTurnstile(body?.turnstileToken))) {
+    return NextResponse.json({ error: "Verification failed. Please try again." }, { status: 400 });
   }
 
   const { name, email, password } = parsed.data;

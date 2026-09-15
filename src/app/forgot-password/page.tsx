@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -14,7 +16,7 @@ export default function ForgotPasswordPage() {
     await fetch("/api/forgot-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, turnstileToken }),
     });
     setBusy(false);
     setSubmitted(true);
@@ -56,6 +58,8 @@ export default function ForgotPasswordPage() {
             className="mt-1.5 w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-rose-700 dark:border-white/15"
           />
         </div>
+
+        <TurnstileWidget onVerify={setTurnstileToken} />
 
         <button
           type="submit"

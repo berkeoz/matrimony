@@ -38,6 +38,8 @@ model User {
   matchesAsB        Match[]    @relation("MatchB")
   messagesSent      Message[]  @relation("MessageSender")
   subscription      Subscription?
+  organizedEvents   Event[]    @relation("EventOrganizer")
+  auditLogs         AuditLog[]
 }
 
 model Account {
@@ -115,12 +117,25 @@ enum RsvpStatus {
   CANCELLED
 }
 
+// APPROVED is the default so admin-created events are unaffected. An
+// organizer-created event starts PENDING until an admin reviews it — see
+// src/lib/require-organizer.ts and the /organizer routes.
+enum EventReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Event {
   id              String      @id @default(cuid())
   slug            String      @unique
   title           String
   description     String      @db.Text
   longDescription String      @db.Text
+  // What to expect / how the event is structured (e.g. speed-dating round
+  // length). Free text, shown on the event page; distinct from
+  // longDescription so it reads as its own "Format" section.
+  format          String?     @db.Text
   city            String
   venue           String
   startsAt        DateTime
@@ -130,10 +145,16 @@ model Event {
   // 0 = free. Members with an active Subscription always attend for free
   // regardless of this value — see src/lib/subscription.ts.
   priceCents      Int         @default(0)
+  // Who created/owns this event. Null for events created before this field
+  // existed. Only meaningfully restricts anything for ORGANIZER-role users —
+  // ADMIN can manage every event regardless of ownership.
+  organizerId     String?
+  reviewStatus    EventReviewStatus @default(APPROVED)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
-  rsvps EventRsvp[]
+  organizerUser User? @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: SetNull)
+  rsvps         EventRsvp[]
 }
 
 model EventRsvp {
@@ -309,4 +330,21 @@ model Subscription {
   updatedAt DateTime           @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A record of every admin (and organizer) mutation — who did what to what,
+// when. actorId is nullable and SetNull on delete so the log survives even
+// if the acting account is later deleted.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
 }

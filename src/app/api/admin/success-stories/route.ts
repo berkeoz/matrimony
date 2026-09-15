@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { successStorySchema } from "@/lib/validation";
+import { logAction } from "@/lib/audit";
 
 export async function POST(request: Request) {
-  const { response } = await requireAdmin();
+  const { session, response } = await requireAdmin();
   if (response) return response;
 
   const body = await request.json().catch(() => null);
@@ -14,5 +15,14 @@ export async function POST(request: Request) {
   }
 
   const story = await prisma.successStory.create({ data: parsed.data });
+
+  await logAction({
+    actorId: session!.user.id,
+    action: "success-story.create",
+    targetType: "SuccessStory",
+    targetId: story.id,
+    metadata: { names: story.names },
+  });
+
   return NextResponse.json({ story }, { status: 201 });
 }

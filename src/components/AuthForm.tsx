@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 export default function AuthForm({ defaultMode }: { defaultMode: "login" | "signup" }) {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function AuthForm({ defaultMode }: { defaultMode: "login" | "sign
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   function switchTo(next: "login" | "signup") {
     setMode(next);
@@ -46,7 +48,7 @@ export default function AuthForm({ defaultMode }: { defaultMode: "login" | "sign
       const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, turnstileToken }),
       });
       const data = await res.json();
 
@@ -201,6 +203,8 @@ export default function AuthForm({ defaultMode }: { defaultMode: "login" | "sign
               />
               <p className="mt-1 text-xs text-neutral-500">At least 8 characters.</p>
             </div>
+
+            <TurnstileWidget onVerify={setTurnstileToken} />
 
             {error && (
               <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">

@@ -62,6 +62,14 @@ export default function Header({
                 Admin
               </Link>
             )}
+            {session.user.role === "ORGANIZER" && (
+              <Link
+                href="/organizer/events"
+                className="hidden text-sm font-semibold text-rose-700 hover:underline sm:block"
+              >
+                Organize
+              </Link>
+            )}
             <Link
               href="/profile"
               className="hidden text-sm font-medium text-neutral-600 transition hover:text-rose-700 sm:block dark:text-neutral-300"

@@ -3,9 +3,10 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { adminCreateUserSchema } from "@/lib/validation";
+import { logAction } from "@/lib/audit";
 
 export async function POST(request: Request) {
-  const { response } = await requireAdmin();
+  const { session, response } = await requireAdmin();
   if (response) return response;
 
   const body = await request.json().catch(() => null);
@@ -25,6 +26,14 @@ export async function POST(request: Request) {
   const user = await prisma.user.create({
     data: { name, email, passwordHash, role, emailVerified: new Date() },
     select: { id: true, name: true, email: true, role: true },
+  });
+
+  await logAction({
+    actorId: session!.user.id,
+    action: "user.create",
+    targetType: "User",
+    targetId: user.id,
+    metadata: { email: user.email, role: user.role },
   });
 
   return NextResponse.json({ user }, { status: 201 });

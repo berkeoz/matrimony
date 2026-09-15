@@ -51,7 +51,9 @@ export default function BrowseClient() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actioned, setActioned] = useState<Record<string, "interested" | "matched" | "passed">>({});
+  const [actioned, setActioned] = useState<
+    Record<string, { status: "interested" | "matched" | "passed"; matchId?: string }>
+  >({});
   const [interestUsage, setInterestUsage] = useState<InterestUsage | null>(null);
 
   const load = useCallback(async (nextPage: number, activeFilters: Filters) => {
@@ -106,7 +108,12 @@ export default function BrowseClient() {
     const data = await res.json().catch(() => ({}));
     if (data.usage) setInterestUsage(data.usage);
     if (res.ok) {
-      setActioned((prev) => ({ ...prev, [userId]: data.matched ? "matched" : "interested" }));
+      setActioned((prev) => ({
+        ...prev,
+        [userId]: data.matched
+          ? { status: "matched", matchId: data.matchId }
+          : { status: "interested" },
+      }));
     } else if (data.code === "FREE_LIMIT_REACHED") {
       setError(data.error);
     }
@@ -119,7 +126,7 @@ export default function BrowseClient() {
       body: JSON.stringify({ toUserId: userId }),
     });
     if (res.ok) {
-      setActioned((prev) => ({ ...prev, [userId]: "passed" }));
+      setActioned((prev) => ({ ...prev, [userId]: { status: "passed" } }));
     }
   }
 
@@ -236,15 +243,24 @@ export default function BrowseClient() {
                 </p>
                 {card.profession && <p className="text-xs text-neutral-500">{card.profession}</p>}
 
-                {status === "matched" ? (
-                  <p className="mt-3 rounded-full bg-green-100 px-3 py-1.5 text-center text-xs font-semibold text-green-800 dark:bg-green-900/40 dark:text-green-300">
-                    It&apos;s a match! 🎉
-                  </p>
-                ) : status === "interested" ? (
+                {status?.status === "matched" ? (
+                  status.matchId ? (
+                    <Link
+                      href={`/matches/${status.matchId}`}
+                      className="mt-3 block rounded-full bg-green-100 px-3 py-1.5 text-center text-xs font-semibold text-green-800 transition hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300"
+                    >
+                      It&apos;s a match! 🎉 Start chatting →
+                    </Link>
+                  ) : (
+                    <p className="mt-3 rounded-full bg-green-100 px-3 py-1.5 text-center text-xs font-semibold text-green-800 dark:bg-green-900/40 dark:text-green-300">
+                      It&apos;s a match! 🎉
+                    </p>
+                  )
+                ) : status?.status === "interested" ? (
                   <p className="mt-3 rounded-full bg-neutral-100 px-3 py-1.5 text-center text-xs font-semibold text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
                     Interest sent
                   </p>
-                ) : status === "passed" ? (
+                ) : status?.status === "passed" ? (
                   <p className="mt-3 rounded-full bg-neutral-100 px-3 py-1.5 text-center text-xs font-semibold text-neutral-400 dark:bg-neutral-800">
                     Passed
                   </p>

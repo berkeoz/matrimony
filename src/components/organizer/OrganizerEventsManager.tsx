@@ -7,6 +7,7 @@ import { slugify, DEFAULT_EVENT_FORMAT } from "@/lib/events";
 import { toDateTimeLocalValue, formatWallClockDate, parseWallClockDateTime } from "@/lib/datetime";
 
 type EventStatus = "OPEN" | "CLOSED" | "CANCELLED" | "COMPLETED";
+type ReviewStatus = "PENDING" | "APPROVED" | "REJECTED";
 type RsvpStatus = "PENDING" | "CONFIRMED" | "WAITLISTED" | "CANCELLED";
 
 type Attendee = {
@@ -19,8 +20,6 @@ type Attendee = {
   photoUrl: string | null;
 };
 
-type ReviewStatus = "PENDING" | "APPROVED" | "REJECTED";
-
 type EventItem = {
   id: string;
   slug: string;
@@ -30,21 +29,16 @@ type EventItem = {
   format: string | null;
   city: string;
   venue: string;
-  startsAt: string; // datetime-local value
+  startsAt: string;
   organizer: string;
   capacity: number;
   status: EventStatus;
-  priceCents: number;
+  reviewStatus: ReviewStatus;
   confirmedCount: number;
   attendees: Attendee[];
-  organizerName: string | null;
-  reviewStatus: ReviewStatus;
 };
 
-type FormFields = Omit<
-  EventItem,
-  "id" | "confirmedCount" | "attendees" | "organizerName" | "reviewStatus"
->;
+type FormFields = Omit<EventItem, "id" | "reviewStatus" | "confirmedCount" | "attendees">;
 
 const emptyForm: FormFields = {
   slug: "",
@@ -58,7 +52,6 @@ const emptyForm: FormFields = {
   organizer: "",
   capacity: 0,
   status: "OPEN",
-  priceCents: 0,
 };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -78,6 +71,12 @@ const statusBadgeClass: Record<EventStatus, string> = {
   CLOSED: "bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
   CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
   COMPLETED: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+};
+
+const reviewBadgeClass: Record<ReviewStatus, string> = {
+  PENDING: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+  APPROVED: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+  REJECTED: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
 };
 
 function EventForm({
@@ -101,7 +100,7 @@ function EventForm({
     setBusy(true);
     setError(null);
 
-    const url = eventId ? `/api/admin/events/${eventId}` : "/api/admin/events";
+    const url = eventId ? `/api/organizer/events/${eventId}` : "/api/organizer/events";
     const res = await fetch(url, {
       method: eventId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
@@ -202,7 +201,7 @@ function EventForm({
             className={inputClass}
           />
         </Field>
-        <Field label="Organizer">
+        <Field label="Organizer name (shown publicly)">
           <input
             required
             value={form.organizer}
@@ -237,30 +236,10 @@ function EventForm({
         </Field>
       </div>
 
-      <Field label="Price in USD (0 = free)">
-        <input
-          type="number"
-          min={0}
-          step="0.01"
-          value={form.priceCents / 100}
-          onChange={(e) =>
-            setForm({ ...form, priceCents: Math.round(Number(e.target.value || 0) * 100) })
-          }
-          className={`${inputClass} sm:w-40`}
-        />
-      </Field>
-      {form.priceCents > 0 && (
-        <p className="text-xs text-amber-700 dark:text-amber-400">
-          Online payments aren&apos;t wired up yet, so members without a subscription can&apos;t
-          RSVP to this event until that&apos;s built. Subscribed members attend free.
-        </p>
-      )}
-
-      {eventId && form.status === "CANCELLED" && (
-        <p className="text-xs text-amber-700 dark:text-amber-400">
-          Saving will email everyone currently RSVP&apos;d that this event is cancelled.
-        </p>
-      )}
+      <p className="text-xs text-neutral-500">
+        Your events are always free, and need admin approval before they&apos;re visible on the
+        public Events page.
+      </p>
 
       <div className="flex gap-3">
         <button
@@ -361,18 +340,17 @@ function EventRow({ event, onChanged }: { event: EventItem; onChanged: () => voi
   async function handleDelete() {
     if (!confirm(`Delete "${event.title}"? This removes it and all RSVPs.`)) return;
     setBusy(true);
-    const res = await fetch(`/api/admin/events/${event.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/organizer/events/${event.id}`, { method: "DELETE" });
     setBusy(false);
     if (res.ok) router.refresh();
   }
 
   if (editing) {
-    const { id, confirmedCount, attendees, organizerName, reviewStatus, ...rest } = event;
+    const { id, reviewStatus, confirmedCount, attendees, ...rest } = event;
     void id;
+    void reviewStatus;
     void confirmedCount;
     void attendees;
-    void organizerName;
-    void reviewStatus;
     return (
       <EventForm
         initial={rest}
@@ -386,17 +364,6 @@ function EventRow({ event, onChanged }: { event: EventItem; onChanged: () => voi
     );
   }
 
-  async function handleReview(action: "approve" | "reject") {
-    setBusy(true);
-    const res = await fetch(`/api/admin/events/${event.id}/review`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
-    setBusy(false);
-    if (res.ok) router.refresh();
-  }
-
   return (
     <div className="rounded-2xl border border-black/10 p-4">
       <div className="flex items-start justify-between gap-4">
@@ -408,48 +375,19 @@ function EventRow({ event, onChanged }: { event: EventItem; onChanged: () => voi
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusBadgeClass[event.status]}`}>
               {event.status}
             </span>
-            {event.reviewStatus !== "APPROVED" && (
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                  event.reviewStatus === "PENDING"
-                    ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-                    : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                }`}
-              >
-                {event.reviewStatus}
-              </span>
-            )}
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${reviewBadgeClass[event.reviewStatus]}`}>
+              {event.reviewStatus === "APPROVED" ? "LIVE" : event.reviewStatus}
+            </span>
           </div>
           <p className="mt-1 text-xs text-neutral-500">
             {formatWallClockDate(parseWallClockDateTime(event.startsAt))} · {event.venue}
           </p>
           <p className="mt-1 text-xs text-neutral-400">
-            {event.confirmedCount} / {event.capacity} confirmed · /events/{event.slug}
-            {event.priceCents > 0 && ` · $${(event.priceCents / 100).toFixed(2)}`}
-            {event.organizerName && ` · Organized by ${event.organizerName}`}
+            {event.confirmedCount} / {event.capacity} confirmed
+            {event.reviewStatus === "APPROVED" && ` · /events/${event.slug}`}
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
-          {event.reviewStatus === "PENDING" && (
-            <>
-              <button
-                type="button"
-                onClick={() => handleReview("approve")}
-                disabled={busy}
-                className="text-xs font-semibold text-green-700 hover:underline disabled:opacity-40 dark:text-green-400"
-              >
-                Approve
-              </button>
-              <button
-                type="button"
-                onClick={() => handleReview("reject")}
-                disabled={busy}
-                className="text-xs font-semibold text-red-700 hover:underline disabled:opacity-40 dark:text-red-400"
-              >
-                Reject
-              </button>
-            </>
-          )}
+        <div className="flex shrink-0 gap-3">
           <button
             type="button"
             onClick={() => setShowAttendees((s) => !s)}
@@ -483,7 +421,7 @@ function EventRow({ event, onChanged }: { event: EventItem; onChanged: () => voi
   );
 }
 
-export default function EventsManager({ events }: { events: EventItem[] }) {
+export default function OrganizerEventsManager({ events }: { events: EventItem[] }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
 

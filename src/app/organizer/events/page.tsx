@@ -1,12 +1,14 @@
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { toDateTimeLocalValue } from "@/lib/datetime";
 import { getConfirmedCount, getAttendees } from "@/lib/rsvp";
-import EventsManager from "@/components/admin/EventsManager";
+import OrganizerEventsManager from "@/components/organizer/OrganizerEventsManager";
 
-export default async function AdminEventsPage() {
+export default async function OrganizerEventsPage() {
+  const session = await auth();
   const events = await prisma.event.findMany({
+    where: { organizerId: session!.user.id },
     orderBy: { startsAt: "desc" },
-    include: { organizerUser: { select: { name: true, email: true } } },
   });
 
   const items = await Promise.all(
@@ -29,23 +31,22 @@ export default async function AdminEventsPage() {
         organizer: event.organizer,
         capacity: event.capacity,
         status: event.status,
-        priceCents: event.priceCents,
+        reviewStatus: event.reviewStatus,
         confirmedCount,
         attendees,
-        organizerName: event.organizerUser?.name ?? event.organizerUser?.email ?? null,
-        reviewStatus: event.reviewStatus,
       };
     })
   );
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Your events</h1>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-        Create, edit, and remove events shown on the public Events page. Attendees are notified
-        automatically if you change the date, time, venue, or cancel an event.
+        Create and manage your own events. They&apos;re always free, and need admin approval
+        before showing up on the public Events page. You can view and remove your own attendees
+        any time.
       </p>
-      <EventsManager events={items} />
+      <OrganizerEventsManager events={items} />
     </div>
   );
 }

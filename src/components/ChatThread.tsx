@@ -8,6 +8,7 @@ type Message = {
   senderId: string;
   body: string;
   createdAt: string;
+  readAt?: string | null;
 };
 
 const POLL_MS = 4000;
@@ -95,8 +96,9 @@ export default function ChatThread({
             Say hello — this is the start of your conversation.
           </p>
         ) : (
-          messages.map((m) => {
+          messages.map((m, i) => {
             const mine = m.senderId === currentUserId;
+            const isLastMine = mine && !messages.slice(i + 1).some((later) => later.senderId === currentUserId);
             return (
               <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                 <div
@@ -114,6 +116,7 @@ export default function ChatThread({
                       hour: "numeric",
                       minute: "2-digit",
                     })}
+                    {isLastMine && m.readAt && " · Seen"}
                   </p>
                 </div>
               </div>

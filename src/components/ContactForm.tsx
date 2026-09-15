@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 export default function ContactForm() {
   const [name, setName] = useState("");
@@ -8,6 +9,7 @@ export default function ContactForm() {
   const [message, setMessage] = useState("");
   const [website, setWebsite] = useState(""); // honeypot
   const [startedAt] = useState(() => Date.now());
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export default function ContactForm() {
     const res = await fetch("/api/contact", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, message, website, startedAt }),
+      body: JSON.stringify({ name, email, message, website, startedAt, turnstileToken }),
     });
 
     setBusy(false);
@@ -94,6 +96,8 @@ export default function ContactForm() {
           className="mt-1.5 w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-rose-700 dark:border-white/15"
         />
       </div>
+
+      <TurnstileWidget onVerify={setTurnstileToken} />
 
       {error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">

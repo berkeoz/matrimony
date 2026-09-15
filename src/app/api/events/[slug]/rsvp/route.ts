@@ -26,6 +26,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Event not found." }, { status: 404 });
   }
 
+  if (event.reviewStatus !== "APPROVED") {
+    return NextResponse.json({ error: "This event isn't published yet." }, { status: 404 });
+  }
+
   if (event.priceCents > 0 && !(await hasActiveSubscription(session.user.id))) {
     return NextResponse.json(
       {
