@@ -6,6 +6,7 @@ const adminNav = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/homepage", label: "Homepage" },
   { href: "/admin/success-stories", label: "Success Stories" },
+  { href: "/admin/prompts", label: "Prompts" },
   { href: "/admin/events", label: "Events" },
   { href: "/admin/pages", label: "Pages" },
   { href: "/admin/users", label: "Users" },

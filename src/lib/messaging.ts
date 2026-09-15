@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { hasActiveSubscription } from "@/lib/subscription";
+import { isBlocked, getBlockedIds } from "@/lib/blocking";
 
 // A free member can only send messages in this many distinct matches at
 // once — conversations they've already started still work past the cap,
@@ -46,6 +47,8 @@ export async function getUserMatch(matchId: string, userId: string) {
   }
 
   const other = match.userAId === userId ? match.userB : match.userA;
+  if (await isBlocked(userId, other.id)) return null;
+
   return {
     matchId: match.id,
     otherUserId: other.id,
@@ -80,10 +83,11 @@ export async function markRead(matchId: string, userId: string): Promise<void> {
 }
 
 export async function getTotalUnreadCount(userId: string): Promise<number> {
+  const blockedIds = await getBlockedIds(userId);
   return prisma.message.count({
     where: {
       readAt: null,
-      senderId: { not: userId },
+      senderId: { not: userId, notIn: Array.from(blockedIds) },
       match: { OR: [{ userAId: userId }, { userBId: userId }] },
     },
   });
@@ -100,8 +104,12 @@ export type ConversationSummary = {
 };
 
 export async function getConversations(userId: string): Promise<ConversationSummary[]> {
+  const blockedIds = await getBlockedIds(userId);
   const matches = await prisma.match.findMany({
-    where: { OR: [{ userAId: userId }, { userBId: userId }] },
+    where: {
+      OR: [{ userAId: userId }, { userBId: userId }],
+      NOT: [{ userAId: { in: Array.from(blockedIds) } }, { userBId: { in: Array.from(blockedIds) } }],
+    },
     include: {
       userA: { select: { id: true, name: true, profile: { select: { photos: { where: { isPrimary: true }, take: 1, select: { url: true } } } } } },
       userB: { select: { id: true, name: true, profile: { select: { photos: { where: { isPrimary: true }, take: 1, select: { url: true } } } } } },

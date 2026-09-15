@@ -123,7 +123,24 @@ export default async function CandidateProfilePage({
                   <dt className="text-xs font-semibold uppercase text-neutral-500">Alcohol</dt>
                   <dd className="mt-0.5">{candidate.alcohol ? HABIT_LEVEL_LABELS[candidate.alcohol] : "—"}</dd>
                 </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase text-neutral-500">Pets</dt>
+                  <dd className="mt-0.5">{candidate.pets ?? "—"}</dd>
+                </div>
               </dl>
+
+              {candidate.prompts.length > 0 && (
+                <div className="space-y-4">
+                  {candidate.prompts.map((p) => (
+                    <div key={p.prompt} className="rounded-xl bg-neutral-50 p-4 dark:bg-neutral-900">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">
+                        {p.prompt}
+                      </p>
+                      <p className="mt-1.5 text-sm text-neutral-700 dark:text-neutral-300">{p.answer}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {candidate.aboutMe && (
                 <div>

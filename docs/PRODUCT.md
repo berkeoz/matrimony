@@ -16,7 +16,7 @@ alongside the code as features land.
 - **Data**: Prisma ORM over PostgreSQL (Neon). Models: `User`, `Account`/`Session`/
   `VerificationToken` (Auth.js), `PasswordResetToken`, `Page`, `SuccessStory`, `Event`/
   `EventRsvp`, `Profile`/`ProfilePhoto`, `HomepageContent`, `Interest`/`Pass`/`Match`, `Message`,
-  `Subscription`, `AuditLog`.
+  `Subscription`, `AuditLog`, `Block`, `Prompt`/`ProfilePromptAnswer`.
 - **CAPTCHA**: Cloudflare Turnstile on signup, forgot-password, and contact — free, unlimited.
   Inactive (renders nothing, verification skipped) until `NEXT_PUBLIC_TURNSTILE_SITE_KEY` /
   `TURNSTILE_SECRET_KEY` are set, same "wired but inactive" pattern as Google OAuth.
@@ -47,7 +47,7 @@ alongside the code as features land.
 **Organizer** (requires `ORGANIZER` role): `/organizer/events`.
 
 **Admin** (requires `ADMIN` role): `/admin`, `/admin/users`, `/admin/events`,
-`/admin/success-stories`, `/admin/homepage`, `/admin/pages`, `/admin/audit-log`.
+`/admin/success-stories`, `/admin/prompts`, `/admin/homepage`, `/admin/pages`, `/admin/audit-log`.
 
 **API**: REST-ish routes under `/api/*` mirroring the above — auth (`/api/signup`,
 `/api/forgot-password`, `/api/reset-password`, `/api/verify-email`, `/api/resend-verification`,
@@ -97,10 +97,25 @@ events), and a daily cron (`/api/cron/event-reminders`).
   the candidate's full profile, gated the same way Browse itself is (opposite gender, complete
   profile only — a guessed `userId` 404s otherwise). Free members see the same summary Browse
   already shows (name, age, city, memleket, profession, one photo); subscribers additionally see
-  every photo, country, height, education, marital status, children, smoking/alcohol, "About",
-  and "Looking for" — with a "Subscribe to see the full profile" prompt in place of that section
-  for free members. Express Interest / Pass work from this page too, sharing the same free-tier
-  cap and API routes as Browse.
+  every photo, country, height, education, marital status, children, smoking/alcohol, pets,
+  prompt answers, "About", and "Looking for" — with a "Subscribe to see the full profile" prompt
+  in place of that section for free members. Express Interest / Pass work from this page too,
+  sharing the same free-tier cap and API routes as Browse.
+- **Unlike**: an "Undo" button next to a sent-but-not-yet-mutual interest (on Browse cards and
+  the profile page) withdraws it — `DELETE /api/interest`, `withdrawInterest` in
+  `src/lib/matching.ts`. Frees up the free-tier interest slot and lets that person reappear in
+  Browse. Only withdraws the one-sided interest; there's no "unmatch" for an already-mutual match.
+- **Blocking**: "Block this person" on the profile page (`Block` model, `src/lib/blocking.ts`)
+  hides that person from Browse, Received Likes, and Matches in *both* directions, and makes
+  `/browse/[userId]` and the chat thread 404/inaccessible for both — checked in every relevant
+  query (`getBrowseCandidates`, `getCandidateProfile`, `getReceivedLikes`, `getUserMatch`,
+  `getConversations`), not just hidden in the UI. Manage/undo blocks from a "Blocked users" list
+  on `/profile`.
+- **Pets & Prompts**: `Profile.pets` is a free-text optional field (like fieldOfStudy). Prompts
+  are an admin-managed library (`/admin/prompts` — text, order, active/inactive) that members
+  pick up to 3 from and answer on `/profile` (`ProfilePromptAnswer`, unique per profile+prompt).
+  Both show in the subscriber-only section of the profile detail view, same gating as everything
+  else there.
 - **Received Likes** (`/likes`): people who've expressed interest in you that you haven't
   matched with (or passed on) yet. Free members see only a count ("3 people liked you") with a
   subscribe prompt; subscribers see the actual list and can act on each one immediately instead

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { calculateAge, isProfileComplete } from "@/lib/profile";
 import { hasActiveSubscription } from "@/lib/subscription";
+import { getBlockedIds, isBlocked } from "@/lib/blocking";
 import type { EducationLevel, MaritalStatus, HabitLevel } from "@prisma/client";
 
 // Passing is unlimited (it's just skipping someone) — this caps how many
@@ -64,11 +65,12 @@ export async function getBrowseCandidates(
   filters: BrowseFilters,
   page = 1
 ): Promise<{ cards: BrowseCard[]; hasMore: boolean }> {
-  const [interested, passed, matchedAsA, matchedAsB] = await Promise.all([
+  const [interested, passed, matchedAsA, matchedAsB, blockedIds] = await Promise.all([
     prisma.interest.findMany({ where: { fromUserId: userId }, select: { toUserId: true } }),
     prisma.pass.findMany({ where: { fromUserId: userId }, select: { toUserId: true } }),
     prisma.match.findMany({ where: { userAId: userId }, select: { userBId: true } }),
     prisma.match.findMany({ where: { userBId: userId }, select: { userAId: true } }),
+    getBlockedIds(userId),
   ]);
 
   const excludeIds = new Set([
@@ -77,6 +79,7 @@ export async function getBrowseCandidates(
     ...passed.map((p) => p.toUserId),
     ...matchedAsA.map((m) => m.userBId),
     ...matchedAsB.map((m) => m.userAId),
+    ...blockedIds,
   ]);
 
   const { lte, gte } = birthDateRange(filters.minAge, filters.maxAge);
@@ -179,6 +182,13 @@ export async function passUser(fromUserId: string, toUserId: string): Promise<vo
   });
 }
 
+// "Unlike" — withdraws interest you sent before it became mutual. Once
+// matched, a Match row exists independently of the Interest rows, so this
+// has no effect on an existing match (there's no "unmatch" here).
+export async function withdrawInterest(fromUserId: string, toUserId: string): Promise<void> {
+  await prisma.interest.deleteMany({ where: { fromUserId, toUserId } });
+}
+
 export type InterestStatusResult =
   | { status: "none" | "interested" | "passed" }
   | { status: "matched"; matchId: string };
@@ -224,13 +234,17 @@ export type CandidateProfile = {
   heightCm: number | null;
   aboutMe: string | null;
   lookingFor: string | null;
+  pets: string | null;
   photoUrls: string[];
+  prompts: { prompt: string; answer: string }[];
 };
 
 export async function getCandidateProfile(
   viewerId: string,
   targetUserId: string
 ): Promise<CandidateProfile | null> {
+  if (await isBlocked(viewerId, targetUserId)) return null;
+
   const viewer = await prisma.profile.findUnique({
     where: { userId: viewerId },
     select: { seekingGender: true },
@@ -239,7 +253,11 @@ export async function getCandidateProfile(
 
   const profile = await prisma.profile.findUnique({
     where: { userId: targetUserId },
-    include: { photos: { orderBy: { order: "asc" } }, user: { select: { name: true } } },
+    include: {
+      photos: { orderBy: { order: "asc" } },
+      user: { select: { name: true } },
+      promptAnswers: { orderBy: { order: "asc" }, include: { prompt: { select: { text: true } } } },
+    },
   });
   if (!profile || profile.gender !== viewer.seekingGender) return null;
   if (!isProfileComplete(profile)) return null;
@@ -261,7 +279,9 @@ export async function getCandidateProfile(
     heightCm: profile.heightCm,
     aboutMe: profile.aboutMe,
     lookingFor: profile.lookingFor,
+    pets: profile.pets,
     photoUrls: profile.photos.map((p) => p.url),
+    prompts: profile.promptAnswers.map((a) => ({ prompt: a.prompt.text, answer: a.answer })),
   };
 }
 
@@ -269,16 +289,18 @@ export async function getCandidateProfile(
 // passed on) yet. Passing/matching moves someone out of this list — passing
 // because you've already said no, matching because they've moved to Matches.
 async function getExcludedLikerIds(userId: string): Promise<Set<string>> {
-  const [passed, matchedA, matchedB] = await Promise.all([
+  const [passed, matchedA, matchedB, blockedIds] = await Promise.all([
     prisma.pass.findMany({ where: { fromUserId: userId }, select: { toUserId: true } }),
     prisma.match.findMany({ where: { userAId: userId }, select: { userBId: true } }),
     prisma.match.findMany({ where: { userBId: userId }, select: { userAId: true } }),
+    getBlockedIds(userId),
   ]);
   return new Set([
     userId,
     ...passed.map((p) => p.toUserId),
     ...matchedA.map((m) => m.userBId),
     ...matchedB.map((m) => m.userAId),
+    ...blockedIds,
   ]);
 }
 

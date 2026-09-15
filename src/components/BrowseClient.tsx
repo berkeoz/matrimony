@@ -142,6 +142,23 @@ export default function BrowseClient() {
     }
   }
 
+  async function handleWithdraw(userId: string) {
+    const res = await fetch("/api/interest", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ toUserId: userId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.usage) setInterestUsage(data.usage);
+    if (res.ok) {
+      setActioned((prev) => {
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
+    }
+  }
+
   return (
     <div>
       <form onSubmit={applyFilters} className="flex flex-wrap items-end gap-3 rounded-2xl border border-black/10 p-4">
@@ -289,9 +306,18 @@ export default function BrowseClient() {
                     </p>
                   )
                 ) : status?.status === "interested" ? (
-                  <p className="mt-3 rounded-full bg-neutral-100 px-3 py-1.5 text-center text-xs font-semibold text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-                    Interest sent
-                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <p className="flex-1 rounded-full bg-neutral-100 px-3 py-1.5 text-center text-xs font-semibold text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+                      Interest sent
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleWithdraw(card.userId)}
+                      className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs font-semibold transition hover:border-rose-700 dark:border-neutral-700"
+                    >
+                      Undo
+                    </button>
+                  </div>
                 ) : status?.status === "passed" ? (
                   <p className="mt-3 rounded-full bg-neutral-100 px-3 py-1.5 text-center text-xs font-semibold text-neutral-400 dark:bg-neutral-800">
                     Passed

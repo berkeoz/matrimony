@@ -50,6 +50,17 @@ export const successStorySchema = z.object({
   order: z.coerce.number().int().default(0),
 });
 
+export const promptSchema = z.object({
+  text: z.string().trim().min(1).max(200),
+  order: z.coerce.number().int().default(0),
+  active: z.boolean().default(true),
+});
+
+export const promptAnswerSchema = z.object({
+  promptId: z.string().trim().min(1),
+  answer: z.string().trim().min(1, "Answer can't be empty").max(300),
+});
+
 export const eventStatusSchema = z.enum(["OPEN", "CLOSED", "CANCELLED", "COMPLETED"]);
 
 export const eventSchema = z.object({
@@ -128,6 +139,7 @@ export const profileSchema = z.object({
   alcohol: habitLevelSchema.nullable().optional(),
   aboutMe: z.string().trim().max(3000).nullable().optional(),
   lookingFor: z.string().trim().max(3000).nullable().optional(),
+  pets: z.string().trim().max(150).nullable().optional(),
 });
 
 export const sendMessageSchema = z.object({

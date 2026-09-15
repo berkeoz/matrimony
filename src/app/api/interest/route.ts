@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getProfile, isProfileComplete } from "@/lib/profile";
-import { expressInterest, canExpressInterest, getInterestUsage } from "@/lib/matching";
+import { expressInterest, withdrawInterest, canExpressInterest, getInterestUsage } from "@/lib/matching";
+import { isBlocked } from "@/lib/blocking";
 import { interestActionSchema } from "@/lib/validation";
 import { sendMatchEmail } from "@/lib/mail";
 
@@ -33,6 +34,10 @@ export async function POST(request: Request) {
 
   const target = await prisma.user.findUnique({ where: { id: toUserId } });
   if (!target) {
+    return NextResponse.json({ error: "Member not found." }, { status: 404 });
+  }
+
+  if (await isBlocked(session.user.id, toUserId)) {
     return NextResponse.json({ error: "Member not found." }, { status: 404 });
   }
 
@@ -74,4 +79,21 @@ export async function POST(request: Request) {
 
   const usage = await getInterestUsage(session.user.id);
   return NextResponse.json({ ...result, usage });
+}
+
+export async function DELETE(request: Request) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => null);
+  const parsed = interestActionSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  await withdrawInterest(session.user.id, parsed.data.toUserId);
+  const usage = await getInterestUsage(session.user.id);
+  return NextResponse.json({ ok: true, usage });
 }

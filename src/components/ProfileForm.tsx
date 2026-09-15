@@ -26,6 +26,7 @@ export type ProfileFormData = {
   alcohol: HabitLevel | null;
   aboutMe: string | null;
   lookingFor: string | null;
+  pets: string | null;
 };
 
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [
@@ -306,6 +307,14 @@ export default function ProfileForm({
                 </option>
               ))}
             </select>
+          </Field>
+          <Field label="Pets (optional)">
+            <input
+              value={form.pets ?? ""}
+              onChange={(e) => update("pets", e.target.value || null)}
+              placeholder="e.g. 2 cats, none, allergic"
+              className={inputClass}
+            />
           </Field>
         </div>
 

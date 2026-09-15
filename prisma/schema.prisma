@@ -44,6 +44,8 @@ model User {
   subscription      Subscription?
   organizedEvents   Event[]    @relation("EventOrganizer")
   auditLogs         AuditLog[]
+  blocksSent        Block[]    @relation("BlockFrom")
+  blocksReceived    Block[]    @relation("BlockTo")
 }
 
 model Account {
@@ -226,11 +228,15 @@ model Profile {
   alcohol        HabitLevel?
   aboutMe        String?         @db.Text
   lookingFor     String?         @db.Text
+  // Optional, free text (e.g. "2 cats", "none", "allergic") — not part of
+  // completeness, purely an enrichment field like fieldOfStudy.
+  pets           String?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  photos ProfilePhoto[]
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos        ProfilePhoto[]
+  promptAnswers ProfilePromptAnswer[]
 }
 
 model ProfilePhoto {
@@ -242,6 +248,35 @@ model ProfilePhoto {
   createdAt DateTime @default(now())
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+// The admin-managed library of available prompts. A member picks up to 3 of
+// the active ones and writes an answer (ProfilePromptAnswer) — see
+// src/lib/prompts.ts.
+model Prompt {
+  id        String   @id @default(cuid())
+  text      String
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  answers ProfilePromptAnswer[]
+}
+
+model ProfilePromptAnswer {
+  id        String   @id @default(cuid())
+  profileId String
+  promptId  String
+  answer    String   @db.Text
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  prompt  Prompt  @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, promptId])
 }
 
 model HomepageContent {
@@ -276,6 +311,21 @@ model Pass {
 
   fromUser User @relation("PassFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
   toUser   User @relation("PassTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+}
+
+// One-directional record, but treated as mutual everywhere it's checked
+// (Browse, profile view, matches, messaging) — if either person has blocked
+// the other, neither can see or message the other.
+model Block {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  createdAt  DateTime @default(now())
+
+  fromUser User @relation("BlockFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("BlockTo", fields: [toUserId], references: [id], onDelete: Cascade)
 
   @@unique([fromUserId, toUserId])
 }
