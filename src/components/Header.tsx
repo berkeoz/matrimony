@@ -37,9 +37,12 @@ export default function Header({ session }: { session: Session | null }) {
                 Admin
               </Link>
             )}
-            <span className="hidden text-sm font-medium text-neutral-600 sm:block dark:text-neutral-300">
+            <Link
+              href="/profile"
+              className="hidden text-sm font-medium text-neutral-600 transition hover:text-rose-700 sm:block dark:text-neutral-300"
+            >
               {session.user.name ?? session.user.email}
-            </span>
+            </Link>
             <SignOutButton className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold transition hover:border-rose-700 hover:text-rose-700 dark:border-neutral-700" />
           </div>
         ) : (

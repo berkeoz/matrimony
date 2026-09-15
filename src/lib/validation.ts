@@ -76,6 +76,40 @@ export const pageContentSchema = z.object({
   body: z.string().trim().min(1).max(20000),
 });
 
+export const genderSchema = z.enum(["MALE", "FEMALE"]);
+export const maritalStatusSchema = z.enum(["NEVER_MARRIED", "DIVORCED", "WIDOWED"]);
+export const educationLevelSchema = z.enum(["HIGH_SCHOOL", "BACHELORS", "MASTERS", "DOCTORATE", "OTHER"]);
+export const habitLevelSchema = z.enum(["NO", "YES", "SOMETIMES"]);
+
+export const profileSchema = z.object({
+  gender: genderSchema.nullable().optional(),
+  birthDate: z
+    .string()
+    .nullable()
+    .optional()
+    .refine((val) => {
+      if (!val) return true;
+      const date = new Date(val);
+      if (Number.isNaN(date.getTime())) return false;
+      const ageMs = Date.now() - date.getTime();
+      const age = ageMs / (365.25 * 24 * 60 * 60 * 1000);
+      return age >= 18 && age <= 100;
+    }, "You must be between 18 and 100 years old"),
+  heightCm: z.coerce.number().int().min(100).max(250).nullable().optional(),
+  city: z.string().trim().min(1).max(100).nullable().optional(),
+  memleket: z.string().trim().min(1).max(100).nullable().optional(),
+  country: z.string().trim().min(1).max(100).nullable().optional(),
+  maritalStatus: maritalStatusSchema.nullable().optional(),
+  hasChildren: z.boolean().nullable().optional(),
+  educationLevel: educationLevelSchema.nullable().optional(),
+  fieldOfStudy: z.string().trim().max(150).nullable().optional(),
+  profession: z.string().trim().min(1).max(150).nullable().optional(),
+  smoking: habitLevelSchema.nullable().optional(),
+  alcohol: habitLevelSchema.nullable().optional(),
+  aboutMe: z.string().trim().max(3000).nullable().optional(),
+  lookingFor: z.string().trim().max(3000).nullable().optional(),
+});
+
 export const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(150),
   email: z.string().trim().toLowerCase().email("Enter a valid email address"),

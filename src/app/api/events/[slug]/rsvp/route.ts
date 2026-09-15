@@ -2,12 +2,21 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createRsvp, cancelRsvp } from "@/lib/rsvp";
+import { getProfile, isProfileComplete } from "@/lib/profile";
 import { sendRsvpPendingEmail, sendWaitlistPromotedEmail, type EventEmailInfo } from "@/lib/mail";
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  const profile = await getProfile(session.user.id);
+  if (!isProfileComplete(profile)) {
+    return NextResponse.json(
+      { error: "Complete your profile before RSVPing to events.", code: "PROFILE_INCOMPLETE" },
+      { status: 403 }
+    );
   }
 
   const { slug } = await params;

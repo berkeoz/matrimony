@@ -28,6 +28,7 @@ model User {
   accounts Account[]
   sessions Session[]
   rsvps    EventRsvp[]
+  profile  Profile?
 }
 
 model Account {
@@ -138,6 +139,72 @@ model EventRsvp {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum MaritalStatus {
+  NEVER_MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum EducationLevel {
+  HIGH_SCHOOL
+  BACHELORS
+  MASTERS
+  DOCTORATE
+  OTHER
+}
+
+enum HabitLevel {
+  NO
+  YES
+  SOMETIMES
+}
+
+model Profile {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // Every field below (except fieldOfStudy) is nullable so a user can save
+  // partial progress. Completeness is a computed check (see
+  // src/lib/profile.ts), not a schema constraint — it's what gates RSVP.
+  gender         Gender?
+  seekingGender  Gender?
+  birthDate      DateTime?
+  heightCm       Int?
+  city           String?
+  memleket       String?
+  country        String?
+  maritalStatus  MaritalStatus?
+  hasChildren    Boolean?
+  educationLevel EducationLevel?
+  fieldOfStudy   String?
+  profession     String?
+  smoking        HabitLevel?
+  alcohol        HabitLevel?
+  aboutMe        String?         @db.Text
+  lookingFor     String?         @db.Text
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos ProfilePhoto[]
+}
+
+model ProfilePhoto {
+  id        String   @id @default(cuid())
+  profileId String
+  url       String
+  order     Int      @default(0)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
 
 model HomepageContent {

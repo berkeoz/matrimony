@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getEventBySlug } from "@/lib/events";
 import { formatWallClockDate } from "@/lib/datetime";
 import { getConfirmedCount, getUserRsvp } from "@/lib/rsvp";
+import { getProfile, isProfileComplete } from "@/lib/profile";
 import { auth } from "@/lib/auth";
 import RsvpButton from "@/components/RsvpButton";
 
@@ -37,10 +38,12 @@ export default async function EventDetailPage({
   if (!event) notFound();
 
   const session = await auth();
-  const [confirmedCount, userRsvp] = await Promise.all([
+  const [confirmedCount, userRsvp, profile] = await Promise.all([
     getConfirmedCount(event.id),
     session?.user ? getUserRsvp(event.id, session.user.id) : Promise.resolve(null),
+    session?.user ? getProfile(session.user.id) : Promise.resolve(null),
   ]);
+  const profileComplete = isProfileComplete(profile);
 
   const isPast = event.startsAt < new Date();
   const spotsLeft = event.capacity - confirmedCount;
@@ -98,6 +101,18 @@ export default async function EventDetailPage({
           <p className="text-sm text-neutral-500">This event has been cancelled.</p>
         ) : event.status === "CLOSED" ? (
           <p className="text-sm text-neutral-500">RSVPs are closed for this event.</p>
+        ) : session?.user && !profileComplete && initialRsvpStatus === "NONE" ? (
+          <div>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+              Complete your profile to RSVP to events.
+            </p>
+            <Link
+              href="/profile"
+              className="mt-3 inline-block rounded-full bg-rose-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-rose-800"
+            >
+              Complete your profile
+            </Link>
+          </div>
         ) : (
           <RsvpButton
             slug={event.slug}

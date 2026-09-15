@@ -3,6 +3,7 @@ import { getUpcomingEvents } from "@/lib/events";
 import { formatWallClockDate } from "@/lib/datetime";
 import { getHomepageContent } from "@/lib/homepage-content";
 import { getSuccessStories } from "@/lib/success-stories";
+import { auth } from "@/lib/auth";
 
 const trustPointFallback = [
   {
@@ -16,14 +17,16 @@ const trustPointFallback = [
 ];
 
 export default async function Home() {
-  const [content, successStories, upcomingEvents] = await Promise.all([
+  const [content, successStories, upcomingEvents, session] = await Promise.all([
     getHomepageContent(),
     getSuccessStories(),
     getUpcomingEvents(3),
+    auth(),
   ]);
 
   const steps = content.howItWorks;
   const trustPoints = content.trustPoints.length > 0 ? content.trustPoints : trustPointFallback;
+  const profileHref = session?.user ? "/profile" : "/signup";
 
   return (
     <div>
@@ -41,7 +44,7 @@ export default async function Home() {
           </p>
           <div className="flex flex-wrap gap-4">
             <Link
-              href="/signup"
+              href={profileHref}
               className="rounded-full bg-rose-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-rose-800"
             >
               Create your profile
@@ -173,7 +176,7 @@ export default async function Home() {
           {content.ctaDescription}
         </p>
         <Link
-          href="/signup"
+          href={profileHref}
           className="mt-6 inline-block rounded-full bg-rose-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-rose-800"
         >
           Create your profile
