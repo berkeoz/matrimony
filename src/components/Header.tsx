@@ -14,7 +14,6 @@ const memberNavLinks = [
   { href: "/likes", label: "Likes" },
   { href: "/matches", label: "Matches" },
   { href: "/events", label: "Events" },
-  { href: "/subscribe", label: "Subscribe" },
 ];
 
 export default function Header({
@@ -74,6 +73,12 @@ export default function Header({
                 Organize
               </Link>
             )}
+            <Link
+              href="/subscribe"
+              className="hidden text-sm font-medium text-neutral-600 transition hover:text-rose-700 sm:block dark:text-neutral-300"
+            >
+              Subscribe
+            </Link>
             <Link
               href="/profile"
               className="hidden text-sm font-medium text-neutral-600 transition hover:text-rose-700 sm:block dark:text-neutral-300"

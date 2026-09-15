@@ -22,6 +22,10 @@ model User {
   image         String?
   passwordHash  String?
   role          Role      @default(MEMBER)
+  // Touched by the chat poll while a conversation is open (see
+  // src/lib/messaging.ts) — "online" is computed as "within the last
+  // minute", not a real presence/websocket system.
+  lastActiveAt  DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

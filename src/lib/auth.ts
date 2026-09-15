@@ -53,8 +53,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string;
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { emailVerified: true, role: true },
+          select: { name: true, email: true, emailVerified: true, role: true },
         });
+        // Read fresh from the DB rather than the JWT's cached values, so a
+        // name/email change (see /api/account) shows up immediately instead
+        // of only after the next sign-in.
+        if (dbUser?.name) session.user.name = dbUser.name;
+        if (dbUser?.email) session.user.email = dbUser.email;
         session.user.emailVerified = dbUser?.emailVerified ?? null;
         session.user.role = dbUser?.role ?? "MEMBER";
       }

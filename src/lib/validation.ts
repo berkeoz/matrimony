@@ -15,6 +15,20 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
+// Changing email requires the current password, since email controls
+// password-reset delivery — a stolen session shouldn't be able to silently
+// redirect account recovery to an attacker's address.
+export const accountUpdateSchema = z
+  .object({
+    name: z.string().trim().min(2, "Name must be at least 2 characters").max(100).optional(),
+    email: z.string().trim().toLowerCase().email("Enter a valid email address").optional(),
+    currentPassword: z.string().optional(),
+  })
+  .refine((data) => !data.email || data.currentPassword, {
+    message: "Enter your current password to change your email.",
+    path: ["currentPassword"],
+  });
+
 export const roleSchema = z.enum(["MEMBER", "ORGANIZER", "ADMIN"]);
 
 export const adminCreateUserSchema = z.object({

@@ -13,6 +13,14 @@ type Message = {
 
 const POLL_MS = 4000;
 
+const EMOJIS = [
+  "😀", "😂", "😊", "😍", "😘", "😉", "😎", "🤔", "😅", "😇",
+  "🙂", "😢", "😭", "😡", "😴", "🥰", "😆", "🙃", "😬", "🤗",
+  "👍", "👎", "👏", "🙏", "💪", "🤝", "✌️", "👋", "🤞", "💯",
+  "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "💔", "💕", "💐",
+  "🎉", "🎂", "☕", "🍷", "🍻", "🌹", "🔥", "✨", "⭐", "🥳",
+];
+
 function dedupeById(messages: Message[]): Message[] {
   const seen = new Map<string, Message>();
   for (const m of messages) seen.set(m.id, m);
@@ -26,18 +34,23 @@ export default function ChatThread({
   currentUserId,
   initialMessages,
   canSend,
+  initialOnline,
 }: {
   matchId: string;
   currentUserId: string;
   initialMessages: Message[];
   canSend: boolean;
+  initialOnline: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [otherOnline, setOtherOnline] = useState(initialOnline);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastCountRef = useRef(initialMessages.length);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = useCallback((smooth: boolean) => {
     bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
@@ -54,6 +67,7 @@ export default function ChatThread({
       if (!res.ok) return;
       const data = await res.json();
       setMessages((prev) => dedupeById([...prev, ...data.messages]));
+      if (typeof data.match?.otherOnline === "boolean") setOtherOnline(data.match.otherOnline);
       if (data.messages.length > lastCountRef.current) {
         lastCountRef.current = data.messages.length;
         scrollToBottom(true);
@@ -61,6 +75,24 @@ export default function ChatThread({
     }, POLL_MS);
     return () => clearInterval(interval);
   }, [matchId, scrollToBottom]);
+
+  function insertEmoji(emoji: string) {
+    const el = textareaRef.current;
+    if (!el) {
+      setText((t) => t + emoji);
+      return;
+    }
+    const start = el.selectionStart ?? text.length;
+    const end = el.selectionEnd ?? text.length;
+    const next = text.slice(0, start) + emoji + text.slice(end);
+    setText(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + emoji.length;
+      el.setSelectionRange(pos, pos);
+    });
+    setShowEmojiPicker(false);
+  }
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -90,6 +122,12 @@ export default function ChatThread({
 
   return (
     <div className="flex h-[65vh] flex-col rounded-2xl border border-black/10">
+      <div className="flex items-center gap-1.5 border-b border-black/10 px-4 py-2 text-xs text-neutral-500">
+        <span
+          className={`inline-block h-2 w-2 rounded-full ${otherOnline ? "bg-green-500" : "bg-neutral-300 dark:bg-neutral-600"}`}
+        />
+        {otherOnline ? "Online" : "Offline"}
+      </div>
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 ? (
           <p className="text-center text-sm text-neutral-500">
@@ -127,8 +165,31 @@ export default function ChatThread({
       </div>
 
       {canSend ? (
-        <form onSubmit={handleSend} className="flex items-end gap-2 border-t border-black/10 p-3">
+        <form onSubmit={handleSend} className="relative flex items-end gap-2 border-t border-black/10 p-3">
+          {showEmojiPicker && (
+            <div className="absolute bottom-full left-3 mb-2 grid grid-cols-10 gap-1 rounded-xl border border-black/10 bg-[var(--background)] p-2 shadow-lg">
+              {EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => insertEmoji(emoji)}
+                  className="rounded p-1 text-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker((s) => !s)}
+            aria-label="Insert emoji"
+            className="shrink-0 rounded-lg border border-black/15 px-2.5 py-2 text-base transition hover:bg-neutral-100 dark:border-white/15 dark:hover:bg-neutral-800"
+          >
+            😀
+          </button>
           <textarea
+            ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {

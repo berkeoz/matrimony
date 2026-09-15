@@ -40,9 +40,19 @@ type Filters = {
   maxAge: string;
   educationLevel: string;
   maritalStatus: string;
+  aboutMe: string;
+  lookingFor: string;
 };
 
-const emptyFilters: Filters = { city: "", minAge: "", maxAge: "", educationLevel: "", maritalStatus: "" };
+const emptyFilters: Filters = {
+  city: "",
+  minAge: "",
+  maxAge: "",
+  educationLevel: "",
+  maritalStatus: "",
+  aboutMe: "",
+  lookingFor: "",
+};
 
 export default function BrowseClient() {
   const [filters, setFilters] = useState<Filters>(emptyFilters);
@@ -66,6 +76,8 @@ export default function BrowseClient() {
     if (activeFilters.maxAge) params.set("maxAge", activeFilters.maxAge);
     if (activeFilters.educationLevel) params.set("educationLevel", activeFilters.educationLevel);
     if (activeFilters.maritalStatus) params.set("maritalStatus", activeFilters.maritalStatus);
+    if (activeFilters.aboutMe) params.set("aboutMe", activeFilters.aboutMe);
+    if (activeFilters.lookingFor) params.set("lookingFor", activeFilters.lookingFor);
 
     const res = await fetch(`/api/browse?${params.toString()}`);
     const data = await res.json().catch(() => ({}));
@@ -190,6 +202,24 @@ export default function BrowseClient() {
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium">About contains</label>
+          <input
+            value={filters.aboutMe}
+            onChange={(e) => setFilters({ ...filters, aboutMe: e.target.value })}
+            placeholder="e.g. hiking"
+            className={`mt-1 ${selectClass}`}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium">Looking for contains</label>
+          <input
+            value={filters.lookingFor}
+            onChange={(e) => setFilters({ ...filters, lookingFor: e.target.value })}
+            placeholder="e.g. family-oriented"
+            className={`mt-1 ${selectClass}`}
+          />
         </div>
         <button
           type="submit"

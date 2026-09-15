@@ -106,11 +106,29 @@ events), and a daily cron (`/api/cron/event-reminders`).
   subscribe prompt; subscribers see the actual list and can act on each one immediately instead
   of hoping to stumble across them in Browse. The nav bar shows a badge with the (always-visible,
   even for free members) count — the count itself is the hook, revealing *who* is what's gated.
+- **Browse text filters**: on top of the structured filters (city, age, education, marital
+  status), Browse can also filter by a case-insensitive substring match against "About me" and
+  "Looking for" (`src/lib/matching.ts`, `getBrowseCandidates`).
 - **Messaging**: matched members get a chat thread (`/matches/[matchId]`), polling every 4
   seconds. `/matches` lists conversations with a last-message preview and unread count; the nav
   bar shows a badge with the total unread count. Only the *first* message in a new conversation
   emails the recipient — every message after that is silent (check unread badge / conversation
-  list instead).
+  list instead). The chat header links to the other person's profile (`/browse/[userId]`). An
+  emoji button opens a small picker that inserts at the cursor position — plain-text emoji typed
+  via the OS picker (Win+. / Cmd+Ctrl+Space) also works, since the input is just a text field.
+- **Online status**: the chat thread shows a green/gray dot + "Online"/"Offline" for the other
+  person, approximated from `User.lastActiveAt` — touched every time that user's client polls or
+  sends a message in *any* conversation (`touchActivity` in `src/lib/messaging.ts`), "online"
+  means within the last 60 seconds. Not a real presence/websocket system, just piggybacks on the
+  existing 4-second chat poll — so it's only accurate while the other person actually has a chat
+  open, not site-wide presence.
+- **Account settings**: `/profile` now has an "Account" section above the matchmaking fields for
+  changing name and email (`AccountForm.tsx`, `PATCH /api/account`). Changing email requires the
+  current password (prevents a hijacked session from silently redirecting password-reset emails
+  elsewhere) and resets `emailVerified` to null with a fresh verification email sent to the new
+  address, reusing the same token infrastructure as signup. Name/email changes reflect
+  immediately everywhere (header, etc.) because the session callback now reads them fresh from
+  the DB each request instead of caching them in the JWT (see `src/lib/auth.ts`).
 - **Paid events & subscriptions**: an `Event` can have a `priceCents` (0 = free, the default).
   A `Subscription` (`MONTHLY` or `YEARLY`, on `User`) makes every event free for that member
   regardless of its price, and also lifts the two free-tier caps below. There's no self-serve way

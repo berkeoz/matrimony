@@ -38,6 +38,10 @@ export async function GET(request: Request) {
   if (smoking.success) filters.smoking = smoking.data;
   const alcohol = habitLevelSchema.safeParse(searchParams.get("alcohol"));
   if (alcohol.success) filters.alcohol = alcohol.data;
+  const aboutMe = searchParams.get("aboutMe");
+  if (aboutMe) filters.aboutMe = aboutMe;
+  const lookingFor = searchParams.get("lookingFor");
+  if (lookingFor) filters.lookingFor = lookingFor;
 
   const [result, interestUsage] = await Promise.all([
     getBrowseCandidates(session.user.id, profile.seekingGender, filters, page),

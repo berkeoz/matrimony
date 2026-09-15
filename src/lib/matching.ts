@@ -30,6 +30,8 @@ export type BrowseFilters = {
   hasChildren?: boolean;
   smoking?: HabitLevel;
   alcohol?: HabitLevel;
+  aboutMe?: string;
+  lookingFor?: string;
 };
 
 export type BrowseCard = {
@@ -96,8 +98,12 @@ export async function getBrowseCandidates(
       profession: { not: null },
       smoking: filters.smoking ?? { not: null },
       alcohol: filters.alcohol ?? { not: null },
-      aboutMe: { not: null },
-      lookingFor: { not: null },
+      aboutMe: filters.aboutMe
+        ? { contains: filters.aboutMe, mode: "insensitive" }
+        : { not: null },
+      lookingFor: filters.lookingFor
+        ? { contains: filters.lookingFor, mode: "insensitive" }
+        : { not: null },
       photos: { some: {} },
     },
     select: {

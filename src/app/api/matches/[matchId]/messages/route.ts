@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getUserMatch, getMessages, sendMessage, markRead, canMessageMatch } from "@/lib/messaging";
+import { getUserMatch, getMessages, sendMessage, markRead, canMessageMatch, touchActivity } from "@/lib/messaging";
 import { sendMessageSchema } from "@/lib/validation";
 import { sendNewMessageEmail } from "@/lib/mail";
 
@@ -12,6 +12,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ matc
   }
 
   const { matchId } = await params;
+  await touchActivity(session.user.id);
   const match = await getUserMatch(matchId, session.user.id);
   if (!match) {
     return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
@@ -30,6 +31,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ mat
   }
 
   const { matchId } = await params;
+  await touchActivity(session.user.id);
   const match = await getUserMatch(matchId, session.user.id);
   if (!match) {
     return NextResponse.json({ error: "Conversation not found." }, { status: 404 });

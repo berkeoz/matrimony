@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getProfile, profileCompleteness } from "@/lib/profile";
 import ProfileForm, { type ProfileFormData } from "@/components/ProfileForm";
+import AccountForm from "@/components/AccountForm";
 
 function toDateInputValue(date: Date | null): string | null {
   if (!date) return null;
@@ -42,7 +43,8 @@ export default async function ProfilePage() {
         This is what other members will eventually see. Keep it accurate and complete.
       </p>
 
-      <div className="mt-8">
+      <div className="mt-8 space-y-6">
+        <AccountForm initialName={session.user.name ?? ""} initialEmail={session.user.email ?? ""} />
         <ProfileForm
           initial={initial}
           photos={profile?.photos.map((p) => ({ id: p.id, url: p.url, isPrimary: p.isPrimary })) ?? []}

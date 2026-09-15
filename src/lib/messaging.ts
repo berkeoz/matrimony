@@ -6,6 +6,19 @@ import { hasActiveSubscription } from "@/lib/subscription";
 // only starting a new one is blocked. Subscribers are unlimited.
 export const FREE_MESSAGE_LIMIT = 2;
 
+// "Online" is approximated from the chat poll itself (see the messages GET
+// route), not a real presence/websocket system — within this window of the
+// last poll counts as online.
+const ONLINE_THRESHOLD_MS = 60_000;
+
+export function isOnline(lastActiveAt: Date | null): boolean {
+  return Boolean(lastActiveAt && Date.now() - lastActiveAt.getTime() < ONLINE_THRESHOLD_MS);
+}
+
+export async function touchActivity(userId: string): Promise<void> {
+  await prisma.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } });
+}
+
 export async function canMessageMatch(userId: string, matchId: string): Promise<boolean> {
   if (await hasActiveSubscription(userId)) return true;
 
@@ -23,8 +36,8 @@ export async function getUserMatch(matchId: string, userId: string) {
   const match = await prisma.match.findUnique({
     where: { id: matchId },
     include: {
-      userA: { select: { id: true, name: true, profile: { select: { photos: { where: { isPrimary: true }, take: 1, select: { url: true } } } } } },
-      userB: { select: { id: true, name: true, profile: { select: { photos: { where: { isPrimary: true }, take: 1, select: { url: true } } } } } },
+      userA: { select: { id: true, name: true, lastActiveAt: true, profile: { select: { photos: { where: { isPrimary: true }, take: 1, select: { url: true } } } } } },
+      userB: { select: { id: true, name: true, lastActiveAt: true, profile: { select: { photos: { where: { isPrimary: true }, take: 1, select: { url: true } } } } } },
     },
   });
 
@@ -38,6 +51,7 @@ export async function getUserMatch(matchId: string, userId: string) {
     otherUserId: other.id,
     otherName: other.name ?? "Member",
     otherPhotoUrl: other.profile?.photos[0]?.url ?? null,
+    otherOnline: isOnline(other.lastActiveAt),
   };
 }
 
