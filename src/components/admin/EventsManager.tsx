@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 import { slugify } from "@/lib/events";
 import { toDateTimeLocalValue, formatWallClockDate, parseWallClockDateTime } from "@/lib/datetime";
 
@@ -13,6 +14,9 @@ type Attendee = {
   name: string | null;
   email: string;
   status: RsvpStatus;
+  age: number | null;
+  city: string | null;
+  photoUrl: string | null;
 };
 
 type EventItem = {
@@ -261,30 +265,39 @@ function AttendeeList({ eventId, attendees, onChanged }: { eventId: string; atte
   }
 
   return (
-    <ul className="space-y-1.5">
+    <ul className="space-y-2">
       {attendees.map((a) => (
         <li key={a.userId} className="flex items-center justify-between gap-3 text-xs">
-          <span>
-            {a.name ?? a.email}{" "}
-            <span className="text-neutral-400">
-              — {a.email} ·{" "}
-              <span
-                className={
-                  a.status === "WAITLISTED"
-                    ? "text-amber-600"
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-black/10 bg-neutral-100 dark:bg-neutral-800">
+              {a.photoUrl && <Image src={a.photoUrl} alt="" fill sizes="36px" className="object-cover" />}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate font-medium">
+                {a.name ?? a.email}
+                {a.age !== null && <span className="text-neutral-400">, {a.age}</span>}
+              </p>
+              <p className="truncate text-neutral-400">
+                {a.email}
+                {a.city && <> · {a.city}</>} ·{" "}
+                <span
+                  className={
+                    a.status === "WAITLISTED"
+                      ? "text-amber-600"
+                      : a.status === "PENDING"
+                        ? "text-neutral-500"
+                        : "text-green-700"
+                  }
+                >
+                  {a.status === "WAITLISTED"
+                    ? "waitlisted"
                     : a.status === "PENDING"
-                      ? "text-neutral-500"
-                      : "text-green-700"
-                }
-              >
-                {a.status === "WAITLISTED"
-                  ? "waitlisted"
-                  : a.status === "PENDING"
-                    ? "awaiting confirmation"
-                    : "confirmed"}
-              </span>
-            </span>
-          </span>
+                      ? "awaiting confirmation"
+                      : "confirmed"}
+                </span>
+              </p>
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => handleRemove(a.userId)}

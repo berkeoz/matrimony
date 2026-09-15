@@ -179,9 +179,34 @@ export function canViewAttendeeList(viewerRsvpStatus: string | null | undefined)
 }
 
 export async function getAttendees(eventId: string) {
-  return prisma.eventRsvp.findMany({
+  const rsvps = await prisma.eventRsvp.findMany({
     where: { eventId, status: { in: ["PENDING", "CONFIRMED", "WAITLISTED"] } },
     orderBy: [{ status: "asc" }, { createdAt: "asc" }],
-    include: { user: { select: { id: true, name: true, email: true } } },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profile: {
+            select: {
+              city: true,
+              birthDate: true,
+              photos: { where: { isPrimary: true }, take: 1, select: { url: true } },
+            },
+          },
+        },
+      },
+    },
   });
+
+  return rsvps.map((rsvp) => ({
+    userId: rsvp.userId,
+    status: rsvp.status,
+    name: rsvp.user.name,
+    email: rsvp.user.email,
+    age: rsvp.user.profile?.birthDate ? calculateAge(rsvp.user.profile.birthDate) : null,
+    city: rsvp.user.profile?.city ?? null,
+    photoUrl: rsvp.user.profile?.photos[0]?.url ?? null,
+  }));
 }

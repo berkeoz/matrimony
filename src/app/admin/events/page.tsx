@@ -26,12 +26,7 @@ export default async function AdminEventsPage() {
         capacity: event.capacity,
         status: event.status,
         confirmedCount,
-        attendees: attendees.map((a) => ({
-          userId: a.userId,
-          name: a.user.name,
-          email: a.user.email,
-          status: a.status,
-        })),
+        attendees,
       };
     })
   );
