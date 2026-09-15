@@ -6,6 +6,14 @@ export const PLAN_LABELS: Record<SubscriptionPlan, string> = {
   YEARLY: "Yearly",
 };
 
+// Display-only for now — nothing charges a card until Stripe is wired up
+// (see docs/PRODUCT.md). Hardcoded rather than admin-editable since these
+// will need to become real Stripe Price objects at that point anyway.
+export const PLAN_PRICE_CENTS: Record<SubscriptionPlan, number> = {
+  MONTHLY: 1999,
+  YEARLY: 19900,
+};
+
 function addDuration(from: Date, plan: SubscriptionPlan): Date {
   const result = new Date(from);
   if (plan === "MONTHLY") {

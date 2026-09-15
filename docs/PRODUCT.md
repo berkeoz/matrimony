@@ -108,14 +108,16 @@ events), and a daily cron (`/api/cron/event-reminders`).
   RSVP'd to by a non-subscriber yet — `RsvpButton` shows "Payment coming soon" instead of a
   working button, and the RSVP API rejects it server-side too (`code: "PAYMENT_NOT_AVAILABLE"`).
   A subscriber sees a normal RSVP button and a "free for you — subscriber" note.
-- **Requesting a subscription**: a member can go to `/subscribe` to see the two plans and hit
-  "Request Monthly/Yearly" — this emails every admin (`sendSubscriptionRequestEmail`, same
-  all-admins pattern as the Contact form) with a link straight to `/admin/users`, but collects no
-  payment and creates no subscription by itself; the admin still arranges payment out of band and
-  grants it manually. Every "subscribe to unlock more" mention in the product (the Browse
-  interest-cap banner, the messaging-limit banner, the paid-event RSVP block) links to this page.
-  If the member already has an active subscription, `/subscribe` shows their plan and expiry
-  instead of the request buttons, and the API rejects a duplicate request.
+- **Requesting a subscription**: `/subscribe` shows three pricing cards — Free, Monthly
+  ($19.99/mo), Yearly ($199/yr, "2 months free" vs. paying monthly) — each listing what that
+  tier includes, with the member's current plan highlighted. Hitting "Request Monthly/Yearly"
+  emails every admin (`sendSubscriptionRequestEmail`, same all-admins pattern as the Contact
+  form) with a link straight to `/admin/users`, but collects no payment and creates no
+  subscription by itself; the admin still arranges payment out of band and grants it manually.
+  Every "subscribe to unlock more" mention in the product (the Browse interest-cap banner, the
+  messaging-limit banner, the paid-event RSVP block) links to this page. The displayed prices
+  are hardcoded (`PLAN_PRICE_CENTS` in `src/lib/subscription.ts`) since nothing can charge them
+  yet — they'll need to become real Stripe Price objects once billing is wired up.
 - **Free-tier caps**: a non-subscribed member can express interest in at most **2** people
   total (`FREE_INTEREST_LIMIT` in `src/lib/matching.ts`) — passing stays unlimited, since it's
   interest (the thing that actually consumes matchmaking value) that's gated, not looking.
