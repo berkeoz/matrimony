@@ -129,6 +129,7 @@ export default async function SubscribePage() {
             <Check>Unlimited interest — pursue as many people as you want</Check>
             <Check>Unlimited messaging</Check>
             <Check>Free entry to every paid event</Check>
+            <Check>Free refreshments at every event</Check>
           </ul>
           <div className="mt-4">
             {currentPlan === "YEARLY" ? (

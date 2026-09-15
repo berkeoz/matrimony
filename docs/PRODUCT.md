@@ -110,8 +110,10 @@ events), and a daily cron (`/api/cron/event-reminders`).
   A subscriber sees a normal RSVP button and a "free for you — subscriber" note.
 - **Requesting a subscription**: `/subscribe` shows three pricing cards — Free, Monthly
   ($19.99/mo), Yearly ($199/yr, "2 months free" vs. paying monthly) — each listing what that
-  tier includes, with the member's current plan highlighted. Hitting "Request Monthly/Yearly"
-  emails every admin (`sendSubscriptionRequestEmail`, same all-admins pattern as the Contact
+  tier includes, with the member's current plan highlighted. Yearly gets one extra perk Monthly
+  doesn't: free refreshments at events — a manual, in-person perk (checked against the
+  subscriber's plan at the door), not something the app tracks or enforces. Hitting "Request
+  Monthly/Yearly" emails every admin (`sendSubscriptionRequestEmail`, same all-admins pattern as the Contact
   form) with a link straight to `/admin/users`, but collects no payment and creates no
   subscription by itself; the admin still arranges payment out of band and grants it manually.
   Every "subscribe to unlock more" mention in the product (the Browse interest-cap banner, the
