@@ -39,7 +39,7 @@ alongside the code as features land.
 `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email`, `/rsvp-confirmed`.
 
 **Member** (requires login): `/profile`, `/browse`, `/matches`, `/matches/[matchId]` (chat
-thread).
+thread), `/subscribe`.
 
 **Admin** (requires `ADMIN` role): `/admin`, `/admin/users`, `/admin/events`,
 `/admin/success-stories`, `/admin/homepage`, `/admin/pages`.
@@ -49,8 +49,8 @@ thread).
 `/api/auth/[...nextauth]`), account (`/api/account`), profile (`/api/profile`,
 `/api/profile/photos`, `/api/profile/photos/[id]`), events (`/api/events/[slug]/rsvp`,
 `/api/events/rsvp-confirm`), matching (`/api/browse`, `/api/interest`, `/api/pass`,
-`/api/matches/[matchId]/messages`), contact (`/api/contact`), admin (`/api/admin/*`), and a daily
-cron (`/api/cron/event-reminders`).
+`/api/matches/[matchId]/messages`), subscriptions (`/api/subscribe-request`), contact
+(`/api/contact`), admin (`/api/admin/*`), and a daily cron (`/api/cron/event-reminders`).
 
 ## What's built (as of this doc)
 
@@ -101,6 +101,14 @@ cron (`/api/cron/event-reminders`).
   RSVP'd to by a non-subscriber yet — `RsvpButton` shows "Payment coming soon" instead of a
   working button, and the RSVP API rejects it server-side too (`code: "PAYMENT_NOT_AVAILABLE"`).
   A subscriber sees a normal RSVP button and a "free for you — subscriber" note.
+- **Requesting a subscription**: a member can go to `/subscribe` to see the two plans and hit
+  "Request Monthly/Yearly" — this emails every admin (`sendSubscriptionRequestEmail`, same
+  all-admins pattern as the Contact form) with a link straight to `/admin/users`, but collects no
+  payment and creates no subscription by itself; the admin still arranges payment out of band and
+  grants it manually. Every "subscribe to unlock more" mention in the product (the Browse
+  interest-cap banner, the messaging-limit banner, the paid-event RSVP block) links to this page.
+  If the member already has an active subscription, `/subscribe` shows their plan and expiry
+  instead of the request buttons, and the API rejects a duplicate request.
 - **Free-tier caps**: a non-subscribed member can express interest in at most **2** people
   total (`FREE_INTEREST_LIMIT` in `src/lib/matching.ts`) — passing stays unlimited, since it's
   interest (the thing that actually consumes matchmaking value) that's gated, not looking.
@@ -127,8 +135,9 @@ cron (`/api/cron/event-reminders`).
   dress code, an RSVP question like dietary restrictions, a language). See "Open questions."
 - **Read receipts** — `Message.readAt` is already tracked in the database, but not shown in the
   chat UI.
-- **Subscription self-checkout** — no pricing page, no way for a member to buy their own
-  subscription. Today it's admin-granted only.
+- **Subscription self-checkout** — `/subscribe` lets a member *request* a plan (emails the
+  admin), but there's no way to actually pay for or self-activate one; it's still admin-granted
+  after the fact.
 
 ## Roles — what MEMBER / ORGANIZER / ADMIN actually mean today
 

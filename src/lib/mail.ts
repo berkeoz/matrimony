@@ -148,6 +148,34 @@ export async function sendContactMessageEmail(params: {
   });
 }
 
+export async function sendSubscriptionRequestEmail(params: {
+  to: string;
+  fromName: string;
+  fromEmail: string;
+  plan: "MONTHLY" | "YEARLY";
+  manageUrl: string;
+}) {
+  const { to, fromName, fromEmail, plan, manageUrl } = params;
+  const planLabel = plan === "MONTHLY" ? "Monthly" : "Yearly";
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    replyTo: fromEmail,
+    subject: `Subscription request from ${fromName} (${planLabel})`,
+    html: shell(
+      "New subscription request",
+      `
+        <p><strong>${escapeHtml(fromName)}</strong> (${escapeHtml(fromEmail)}) requested the
+        <strong>${planLabel}</strong> plan.</p>
+        <p style="color: #444;">No payment has been collected — arrange payment with them, then
+        grant the subscription from the admin users page.</p>
+        ${button(manageUrl, "Open admin users")}
+      `
+    ),
+  });
+}
+
 export type EventEmailInfo = {
   title: string;
   venue: string;

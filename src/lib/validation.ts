@@ -121,6 +121,10 @@ export const interestActionSchema = z.object({
 
 export const subscriptionPlanSchema = z.enum(["MONTHLY", "YEARLY"]);
 
+export const subscriptionRequestSchema = z.object({
+  plan: subscriptionPlanSchema,
+});
+
 export const adminSubscriptionActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("grant"), plan: subscriptionPlanSchema }),
   z.object({ action: z.literal("cancel") }),

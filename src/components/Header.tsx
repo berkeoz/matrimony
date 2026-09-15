@@ -13,6 +13,7 @@ const memberNavLinks = [
   { href: "/browse", label: "Browse" },
   { href: "/matches", label: "Matches" },
   { href: "/events", label: "Events" },
+  { href: "/subscribe", label: "Subscribe" },
 ];
 
 export default function Header({

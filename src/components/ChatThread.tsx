@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Link from "next/link";
 
 type Message = {
   id: string;
@@ -147,8 +148,11 @@ export default function ChatThread({
         </form>
       ) : (
         <p className="border-t border-black/10 p-3 text-xs text-neutral-500">
-          You&apos;ve reached the free messaging limit (2 conversations). Subscribe to message more
-          people — you can still read this conversation.
+          You&apos;ve reached the free messaging limit (2 conversations).{" "}
+          <Link href="/subscribe" className="font-semibold text-rose-700 hover:underline">
+            Subscribe
+          </Link>{" "}
+          to message more people — you can still read this conversation.
         </p>
       )}
       {error && <p className="px-3 pb-2 text-xs text-red-600">{error}</p>}

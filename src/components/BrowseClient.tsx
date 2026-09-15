@@ -196,9 +196,17 @@ export default function BrowseClient() {
 
       {interestUsage && !interestUsage.unlimited && (
         <p className="mt-4 rounded-xl bg-neutral-100 px-4 py-2 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-          {interestUsage.used >= interestUsage.limit
-            ? "You've used your 2 free interests. Subscribe to express interest in more people — passing stays unlimited."
-            : `You've expressed interest in ${interestUsage.used} of ${interestUsage.limit} free profiles.`}
+          {interestUsage.used >= interestUsage.limit ? (
+            <>
+              You&apos;ve used your 2 free interests.{" "}
+              <Link href="/subscribe" className="font-semibold text-rose-700 hover:underline">
+                Subscribe
+              </Link>{" "}
+              to express interest in more people — passing stays unlimited.
+            </>
+          ) : (
+            `You've expressed interest in ${interestUsage.used} of ${interestUsage.limit} free profiles.`
+          )}
         </p>
       )}
 

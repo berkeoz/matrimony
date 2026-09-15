@@ -133,8 +133,11 @@ export default function RsvpButton({
           Payment coming soon
         </p>
         <p className="mt-2 text-xs text-neutral-500">
-          Online payments for this event aren&apos;t available yet. Subscribers attend free in the
-          meantime.
+          Online payments for this event aren&apos;t available yet.{" "}
+          <Link href="/subscribe" className="font-semibold text-rose-700 hover:underline">
+            Subscribers
+          </Link>{" "}
+          attend free in the meantime.
         </p>
       </div>
     );
