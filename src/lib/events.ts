@@ -6,7 +6,7 @@ export type { Event };
 // Prefilled as the default "Format" text for new events — admins/organizers
 // can edit or clear it per event, but this is the expected default shape.
 export const DEFAULT_EVENT_FORMAT =
-  "Speed-dating format: about 5–10 minutes one-on-one with each person, then switch to the next partner. No pressure to decide anything at the event itself — how you follow up afterward is entirely up to you.";
+  "Speed-dating format: about 5–10 minutes one-on-one with each person, then switch to the next partner. At the end of the night, everyone privately shares who they liked. When two people choose each other, their contact details are shared with one another after the event.";
 
 export async function getUpcomingEvents(limit?: number): Promise<Event[]> {
   const events = await prisma.event.findMany({
