@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import { auth } from "@/lib/auth";
 import { getTotalUnreadCount } from "@/lib/messaging";
+import { getReceivedLikesCount } from "@/lib/matching";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +27,9 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const session = await auth();
   const needsVerification = Boolean(session?.user) && !session?.user.emailVerified;
-  const unreadCount = session?.user ? await getTotalUnreadCount(session.user.id) : 0;
+  const [unreadCount, likesCount] = session?.user
+    ? await Promise.all([getTotalUnreadCount(session.user.id), getReceivedLikesCount(session.user.id)])
+    : [0, 0];
 
   return (
     <html
@@ -34,7 +37,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <Header session={session} unreadCount={unreadCount} />
+        <Header session={session} unreadCount={unreadCount} likesCount={likesCount} />
         {needsVerification && <VerifyEmailBanner />}
         <main className="flex-1">{children}</main>
         <Footer />

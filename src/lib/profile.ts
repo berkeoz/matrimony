@@ -1,7 +1,27 @@
 import { prisma } from "@/lib/prisma";
-import type { Profile, ProfilePhoto } from "@prisma/client";
+import type { Profile, ProfilePhoto, MaritalStatus, EducationLevel, HabitLevel } from "@prisma/client";
 
 export type ProfileWithPhotos = Profile & { photos: ProfilePhoto[] };
+
+export const MARITAL_STATUS_LABELS: Record<MaritalStatus, string> = {
+  NEVER_MARRIED: "Never married",
+  DIVORCED: "Divorced",
+  WIDOWED: "Widowed",
+};
+
+export const EDUCATION_LEVEL_LABELS: Record<EducationLevel, string> = {
+  HIGH_SCHOOL: "High school",
+  BACHELORS: "Bachelor's degree",
+  MASTERS: "Master's degree",
+  DOCTORATE: "Doctorate",
+  OTHER: "Other",
+};
+
+export const HABIT_LEVEL_LABELS: Record<HabitLevel, string> = {
+  NO: "No",
+  YES: "Yes",
+  SOMETIMES: "Sometimes",
+};
 
 export async function getProfile(userId: string): Promise<ProfileWithPhotos | null> {
   return prisma.profile.findUnique({

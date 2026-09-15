@@ -229,15 +229,17 @@ export default function BrowseClient() {
             const status = actioned[card.userId];
             return (
               <div key={card.userId} className="rounded-2xl border border-black/10 p-4">
-                <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-black/10 bg-neutral-100 dark:bg-neutral-800">
-                  {card.photoUrl && (
-                    <Image src={card.photoUrl} alt="" fill sizes="300px" className="object-cover" />
-                  )}
-                </div>
-                <p className="mt-3 text-sm font-semibold">
-                  {card.name}
-                  {card.age !== null && <span className="font-normal text-neutral-500">, {card.age}</span>}
-                </p>
+                <Link href={`/browse/${card.userId}`}>
+                  <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-black/10 bg-neutral-100 dark:bg-neutral-800">
+                    {card.photoUrl && (
+                      <Image src={card.photoUrl} alt="" fill sizes="300px" className="object-cover" />
+                    )}
+                  </div>
+                  <p className="mt-3 text-sm font-semibold hover:underline">
+                    {card.name}
+                    {card.age !== null && <span className="font-normal text-neutral-500">, {card.age}</span>}
+                  </p>
+                </Link>
                 <p className="text-xs text-neutral-500">
                   {[card.city, card.memleket].filter(Boolean).join(" · ")}
                 </p>

@@ -41,8 +41,8 @@ alongside the code as features land.
 **Public**: `/` (home), `/events`, `/events/[slug]`, `/about`, `/privacy`, `/contact`,
 `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email`, `/rsvp-confirmed`.
 
-**Member** (requires login): `/profile`, `/browse`, `/matches`, `/matches/[matchId]` (chat
-thread), `/subscribe`.
+**Member** (requires login): `/profile`, `/browse`, `/browse/[userId]` (profile detail), `/likes`,
+`/matches`, `/matches/[matchId]` (chat thread), `/subscribe`.
 
 **Organizer** (requires `ORGANIZER` role): `/organizer/events`.
 
@@ -93,6 +93,19 @@ events), and a daily cron (`/api/cron/event-reminders`).
   Express interest or pass on a card; a mutual "express interest" from both sides creates a
   `Match` and emails both members. One-sided interest never emails anyone (avoids notification
   spam / awkwardness if it's never reciprocated).
+- **Profile detail view** (`/browse/[userId]`): clicking a Browse card (or a Received Like) opens
+  the candidate's full profile, gated the same way Browse itself is (opposite gender, complete
+  profile only — a guessed `userId` 404s otherwise). Free members see the same summary Browse
+  already shows (name, age, city, memleket, profession, one photo); subscribers additionally see
+  every photo, country, height, education, marital status, children, smoking/alcohol, "About",
+  and "Looking for" — with a "Subscribe to see the full profile" prompt in place of that section
+  for free members. Express Interest / Pass work from this page too, sharing the same free-tier
+  cap and API routes as Browse.
+- **Received Likes** (`/likes`): people who've expressed interest in you that you haven't
+  matched with (or passed on) yet. Free members see only a count ("3 people liked you") with a
+  subscribe prompt; subscribers see the actual list and can act on each one immediately instead
+  of hoping to stumble across them in Browse. The nav bar shows a badge with the (always-visible,
+  even for free members) count — the count itself is the hook, revealing *who* is what's gated.
 - **Messaging**: matched members get a chat thread (`/matches/[matchId]`), polling every 4
   seconds. `/matches` lists conversations with a last-message preview and unread count; the nav
   bar shows a badge with the total unread count. Only the *first* message in a new conversation

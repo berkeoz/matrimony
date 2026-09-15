@@ -11,6 +11,7 @@ const publicNavLinks = [
 const memberNavLinks = [
   { href: "/", label: "Home" },
   { href: "/browse", label: "Browse" },
+  { href: "/likes", label: "Likes" },
   { href: "/matches", label: "Matches" },
   { href: "/events", label: "Events" },
   { href: "/subscribe", label: "Subscribe" },
@@ -19,11 +20,14 @@ const memberNavLinks = [
 export default function Header({
   session,
   unreadCount = 0,
+  likesCount = 0,
 }: {
   session: Session | null;
   unreadCount?: number;
+  likesCount?: number;
 }) {
   const navLinks = session?.user ? memberNavLinks : publicNavLinks;
+  const badgeCounts: Record<string, number> = { "/matches": unreadCount, "/likes": likesCount };
 
   return (
     <header className="sticky top-0 z-40 border-b border-black/10 bg-[var(--background)]/90 backdrop-blur">
@@ -43,9 +47,9 @@ export default function Header({
               className="relative transition hover:text-rose-700"
             >
               {link.label}
-              {link.href === "/matches" && unreadCount > 0 && (
+              {badgeCounts[link.href] > 0 && (
                 <span className="absolute -right-3 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-700 px-1 text-[10px] font-semibold text-white">
-                  {unreadCount}
+                  {badgeCounts[link.href]}
                 </span>
               )}
             </Link>
